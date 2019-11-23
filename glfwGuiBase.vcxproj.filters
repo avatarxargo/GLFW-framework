@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{821ce9b2-5fc1-4a3e-aca3-faba3fc40451}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\launcher">
+      <UniqueIdentifier>{61e2f77c-f957-4b08-85f2-d8218dd2f77d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit">
+      <UniqueIdentifier>{3fa34860-b774-4d0d-8fa5-db073529b6c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\globals">
+      <UniqueIdentifier>{5990c0a4-6f68-41a3-a48a-d6d6ed929199}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\imgui">
+      <UniqueIdentifier>{0d0bd215-a23d-4ccc-82df-c7d1b5d85995}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\data">
+      <UniqueIdentifier>{34573cf9-d2e7-41ae-980d-831720579ce8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\stolen">
+      <UniqueIdentifier>{d0ccc08f-6c29-4242-9c26-73f2755713be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{060a97dd-4e76-4d5b-a6e7-0d2465a2080d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\toolkit\toolkit.h">
+      <Filter>src\toolkit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\globals\errorCodes.h">
+      <Filter>src\toolkit\globals</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\imgui\imstb_rectpack.h">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\imgui\imstb_textedit.h">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\imgui\imstb_truetype.h">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\imgui\imconfig.h">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\imgui\imgui.h">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\imgui\imgui_impl_glfw.h">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\imgui\imgui_internal.h">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\imgui\imgui_impl_opengl3.h">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\data\Mesh.h">
+      <Filter>src\toolkit\data</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\stolen\InitShader.h">
+      <Filter>src\toolkit\stolen</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\stolen\LoadMesh.h">
+      <Filter>src\toolkit\stolen</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\stolen\LoadTexture.h">
+      <Filter>src\toolkit\stolen</Filter>
+    </ClInclude>
+    <ClInclude Include="src\launcher\scene.h">
+      <Filter>src\launcher</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\toolkit\toolkit.cpp">
+      <Filter>src\toolkit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\launcher\main.cpp">
+      <Filter>src\launcher</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\imgui\imgui_widgets.cpp">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\imgui\imgui.cpp">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\imgui\imgui_demo.cpp">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\imgui\imgui_draw.cpp">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\imgui\imgui_impl_glfw.cpp">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\imgui\imgui_impl_opengl3.cpp">
+      <Filter>src\toolkit\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\data\Mesh.cpp">
+      <Filter>src\toolkit\data</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\stolen\InitShader.cpp">
+      <Filter>src\toolkit\stolen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\stolen\LoadMesh.cpp">
+      <Filter>src\toolkit\stolen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\stolen\LoadTexture.cpp">
+      <Filter>src\toolkit\stolen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\launcher\scene.cpp">
+      <Filter>src\launcher</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\gui_demo_fs.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\gui_demo_vs.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\phong_fs.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\phong_vs.glsl">
+      <Filter>shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>
