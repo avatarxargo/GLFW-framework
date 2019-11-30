@@ -37,9 +37,6 @@ struct MeshData
 
 };
 
-
-
 MeshData LoadMesh(const std::string& pFile);
-
 
 #endif

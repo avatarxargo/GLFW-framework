@@ -24,34 +24,111 @@
 
 static const std::string mesh_vertex_shader("shaders/gui_demo_vs.glsl");
 static const std::string mesh_fragment_shader("shaders/gui_demo_fs.glsl");
-static const std::string mesh_name = "data/akko.obj";
+static const std::string curve_vertex_shader("shaders/curve_vs.glsl");
+static const std::string curve_geometry_shader("shaders/curve_gm.glsl");
+static const std::string curve_fragment_shader("shaders/curve_fs.glsl");
+static std::vector <std::string> mesh_names = { "data/akko.obj", "data/tstglobe.obj" };
 
 GLuint mesh_shader_program = -1;
+GLuint curve_shader_program = -1;
 GLuint texture_id = -1;
 
-MeshData akko;
+// =================== models ==========================
+
+glm::mat4 P;
+glm::mat4 V;
 
 // V Here it is declared
 float campos[3] = { 0.0f,0.0f,0.0f };
-float camstats[3] = { 40.0f,1.0f,100.0f };
+float camstats[3] = { 40.0f,0.01f,100.0f };
 float camangle = 0.0f;
+float campitch = 0.0f;
 float camdst = 5.0f;
 bool clear = true;
+float ccol[4] = { 10.0f / 255.0f,19.0f / 255.0f,28.0f / 255.0f,1.0f };
+
+struct LightStats {
+	float pos[3] = { 0.0f,0.0f,0.0f };
+	float falloff[3] = { 1.0f, 0.0f,0.0f };
+	float ambient[3] = { 0.0f,0.0f,0.0f };
+	float diffuse[3] = { 0.0f,0.0f,0.0f };
+	float specular[3] = { 0.0f,0.0f,0.0f };
+};
+
+struct OutlineEbo {
+	GLuint numElements;
+	std::vector<GLuint> eboData = {};
+};
+
+struct MeshStats {
+	bool visible = true;
+	std::string meshName = "NO NAME";
+	float angle = 0.0f;
+	float meshpos[3] = { 0.0f,0.0f,0.0f };
+	float scale[3] = { 1.0f,1.0f,1.0f };
+	float params[4] = { .0f,0.0f,0.0f,0.0f };
+	//material properties
+	float ambient[3] = { 0.0f,0.0f,0.0f };
+	float diffuse[3] = { 0.0f,0.0f,0.0f };
+	float specular[3] = { 0.0f,0.0f,0.0f };
+	int shininess = 100;
+	bool textured = true;
+	MeshData meshData;
+	OutlineEbo outlines;
+};
+
+std::vector<MeshStats> meshes;
+std::vector<LightStats> lights = {
+	{{0,0.7,0}, {0.0f,1.0f,0.0f}, {0.1f,0.1f,0.1f}, {1.0f,1.0f,1.0f}, {1.0f,1.0f,1.0f}}
+};
 
 // ====================================================
+
+// looks at the mesh from the current camera and detects outlines
+OutlineEbo generateOutlines(MeshData &mesh) {
+	OutlineEbo ret;
+	int size = 50000;
+	for (int i = 0; i < size; ++i) {
+		ret.eboData.push_back(i);
+		ret.eboData.push_back(i+1);
+	}
+	ret.numElements = size*2;
+	return ret;
+}
+
+void addMesh(std::string path) {
+	MeshData meshData = LoadMesh(path);
+	MeshStats newMesh = {
+		true,
+		path,
+		0.0f,
+		{ 0.0f,0.0f,0.0f },
+		{ 1.0f,1.0f,1.0f },
+		{ .0f,0.0f,0.0f,0.0f },
+		//material
+		{ 1.0f,1.0f,1.0f },
+		{ 1.0f,1.0f,1.0f },
+		{ 1.0f,1.0f,1.0f },
+		20.0f,
+		true,
+		meshData,
+		generateOutlines(meshData)
+	};
+	meshes.push_back(newMesh);
+}
 
 void reload_shader()
 {
 	GLuint new_shader = InitShader(mesh_vertex_shader.c_str(), mesh_fragment_shader.c_str());
 
-	//fish
+	//mesh
 	if (new_shader == -1) // loading failed
 	{
 		glClearColor(1.0f, 0.0f, 1.0f, 0.0f); //change clear color if shader can't be compiled
 	}
 	else
 	{
-		glClearColor(0.35f, 0.35f, 0.35f, 0.0f);
+		glClearColor(ccol[0], ccol[1], ccol[2], ccol[3]);
 
 		if (mesh_shader_program != -1)
 		{
@@ -59,28 +136,265 @@ void reload_shader()
 		}
 		mesh_shader_program = new_shader;
 	}
+
+	new_shader = InitShader(curve_vertex_shader.c_str(), curve_fragment_shader.c_str());
+	//curve
+	if (new_shader == -1) // loading failed
+	{
+		glClearColor(1.0f, 1.0f, 0.0f, 0.0f); //change clear color if shader can't be compiled
+	}
+	else
+	{
+		glClearColor(ccol[0], ccol[1], ccol[2], ccol[3]);
+
+		if (curve_shader_program != -1)
+		{
+			glDeleteProgram(curve_shader_program);
+		}
+		curve_shader_program = new_shader;
+	}
+}
+
+// =================== inputs =======================
+
+bool ML = false;
+bool MR = false;
+bool MM = false;
+
+bool cameraRotate = false;
+bool cameraLift = false;
+bool cameraZoom = false;
+bool motionst = false;
+
+double lx, ly;
+bool mouseover_imgui = false;
+
+// any mouse movement
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	int width, height;
+	glfwGetWindowSize(toolkit::getWindow(),&width,&height);
+	double dx = xpos - lx;
+	double dy = ypos - ly;
+	if (mouseover_imgui || motionst) {
+		motionst = false;
+		dx = 0;
+		dy = 0;
+	}
+	if (ML|| MR || MM) {
+		camangle -= 6*dx / width;
+	}
+	if (ML) {
+		campos[1] += 3 * dy / height;
+	}
+	if (MM) {
+		campitch += 5 * dy / height;
+	}
+	if (MR) {
+		camdst -= 5 * dy / height;
+	}
+	lx = xpos;
+	ly = ypos;
+}
+
+// pressing or lifting the mouse buttons
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT)
+		ML = action == GLFW_PRESS;
+	else if (button == GLFW_MOUSE_BUTTON_RIGHT)
+		MR = action == GLFW_PRESS;
+	else if (button == GLFW_MOUSE_BUTTON_MIDDLE)
+		MM = action == GLFW_PRESS;
+	//
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+		//begin cmera rotation
+		cameraRotate = true;
+		cameraLift = true;
+		cameraZoom = false;
+		motionst = true;
+	}
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+		//begin cmera rotation
+		cameraRotate = true;
+		cameraLift = true;
+		cameraZoom = false;
+		motionst = true;
+	}
+	if (action == GLFW_RELEASE) {
+		//end cmera rotation
+		cameraRotate = false;
+		cameraLift = false;
+		cameraZoom = false;
+	}
+}
+
+// hovering, leaving or entering the window
+void cursor_enter_callback(GLFWwindow* window, int entered)
+{
+	if (entered)
+	{
+		// The cursor entered the content area of the window
+	}
+	else
+	{
+		// The cursor left the content area of the window
+	}
+}
+
+// ==================================================
+
+// taken from: https://github.com/ocornut/imgui/issues/707
+void CherryTheme() {
+	// cherry colors, 3 intensities
+#define HI(v)   ImVec4(0.502f, 0.075f, 0.256f, v)
+#define MED(v)  ImVec4(0.455f, 0.198f, 0.301f, v)
+#define LOW(v)  ImVec4(0.232f, 0.201f, 0.271f, v)
+// backgrounds (@todo: complete with BG_MED, BG_LOW)
+#define BG(v)   ImVec4(0.200f, 0.220f, 0.270f, v)
+// text
+#define TEXT(v) ImVec4(0.860f, 0.930f, 0.890f, v)
+
+	auto &style = ImGui::GetStyle();
+	style.Colors[ImGuiCol_Text] = TEXT(0.78f);
+	style.Colors[ImGuiCol_TextDisabled] = TEXT(0.28f);
+	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.13f, 0.14f, 0.17f, 1.00f);
+	style.Colors[ImGuiCol_ChildWindowBg] = BG(0.58f);
+	style.Colors[ImGuiCol_PopupBg] = BG(0.9f);
+	style.Colors[ImGuiCol_Border] = ImVec4(0.31f, 0.31f, 1.00f, 0.00f);
+	style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	style.Colors[ImGuiCol_FrameBg] = BG(1.00f);
+	style.Colors[ImGuiCol_FrameBgHovered] = MED(0.78f);
+	style.Colors[ImGuiCol_FrameBgActive] = MED(1.00f);
+	style.Colors[ImGuiCol_TitleBg] = LOW(1.00f);
+	style.Colors[ImGuiCol_TitleBgActive] = HI(1.00f);
+	style.Colors[ImGuiCol_TitleBgCollapsed] = BG(0.75f);
+	style.Colors[ImGuiCol_MenuBarBg] = BG(0.47f);
+	style.Colors[ImGuiCol_ScrollbarBg] = BG(1.00f);
+	style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.09f, 0.15f, 0.16f, 1.00f);
+	style.Colors[ImGuiCol_ScrollbarGrabHovered] = MED(0.78f);
+	style.Colors[ImGuiCol_ScrollbarGrabActive] = MED(1.00f);
+	style.Colors[ImGuiCol_CheckMark] = ImVec4(0.71f, 0.22f, 0.27f, 1.00f);
+	style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
+	style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.71f, 0.22f, 0.27f, 1.00f);
+	style.Colors[ImGuiCol_Button] = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
+	style.Colors[ImGuiCol_ButtonHovered] = MED(0.86f);
+	style.Colors[ImGuiCol_ButtonActive] = MED(1.00f);
+	style.Colors[ImGuiCol_Header] = MED(0.76f);
+	style.Colors[ImGuiCol_HeaderHovered] = MED(0.86f);
+	style.Colors[ImGuiCol_HeaderActive] = HI(1.00f);
+	style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.47f, 0.77f, 0.83f, 0.04f);
+	style.Colors[ImGuiCol_ResizeGripHovered] = MED(0.78f);
+	style.Colors[ImGuiCol_ResizeGripActive] = MED(1.00f);
+	style.Colors[ImGuiCol_PlotLines] = TEXT(0.63f);
+	style.Colors[ImGuiCol_PlotLinesHovered] = MED(1.00f);
+	style.Colors[ImGuiCol_PlotHistogram] = TEXT(0.63f);
+	style.Colors[ImGuiCol_PlotHistogramHovered] = MED(1.00f);
+	style.Colors[ImGuiCol_TextSelectedBg] = MED(0.43f);
+	// [...]
+	style.Colors[ImGuiCol_ModalWindowDarkening] = BG(0.73f);
+
+	style.WindowPadding = ImVec2(6, 4);
+	style.WindowRounding = 0.0f;
+	style.FramePadding = ImVec2(5, 2);
+	style.FrameRounding = 3.0f;
+	style.ItemSpacing = ImVec2(7, 1);
+	style.ItemInnerSpacing = ImVec2(1, 1);
+	style.TouchExtraPadding = ImVec2(0, 0);
+	style.IndentSpacing = 6.0f;
+	style.ScrollbarSize = 12.0f;
+	style.ScrollbarRounding = 16.0f;
+	style.GrabMinSize = 20.0f;
+	style.GrabRounding = 2.0f;
+
+	style.WindowTitleAlign.x = 0.50f;
+
+	style.Colors[ImGuiCol_Border] = ImVec4(0.539f, 0.479f, 0.255f, 0.162f);
+	style.FrameBorderSize = 0.0f;
+	style.WindowBorderSize = 1.0f;
+}
+
+void registerCallbacks() {
+	glfwSetCursorPosCallback(toolkit::getWindow(), cursor_position_callback);
+	glfwSetMouseButtonCallback(toolkit::getWindow(), mouse_button_callback);
+	glfwSetCursorEnterCallback(toolkit::getWindow(), cursor_enter_callback);
 }
 
 void createScene() {
-	akko = LoadMesh(mesh_name);
+	CherryTheme();
 	reload_shader();
+	for (auto mesh_name : mesh_names) {
+		addMesh(mesh_name);
+	}
+	meshes[0].meshpos[0] = 0.11f;
+	meshes[0].meshpos[1] = 0.85f;
+	registerCallbacks();
+	glfwMaximizeWindow(toolkit::getWindow());
+	const GLFWimage iconImage = LoadGLFWImage("data/images/icon32.png");
+	glfwSetWindowIcon(toolkit::getWindow(), 1, &iconImage);
+	glfwSetWindowTitle(toolkit::getWindow(), "Advanced Anime Shader");
 	glEnable(GL_DEPTH_TEST);
 }
 
-void drawAkko() {
-	glm::mat4 T = glm::translate(glm::vec3(0,0,0));
-	float scl = 0.7;
-	glm::mat4 M = T * glm::rotate(0.0f, glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(scl, scl, scl));
+void applyMaterialParams(GLuint shaderId, MeshStats &mesh) {
+	glUseProgram(shaderId);
+	int amb_loc = glGetUniformLocation(shaderId, "mamb");
+	if (amb_loc != -1)
+		glUniform3f(amb_loc, mesh.ambient[0], mesh.ambient[1], mesh.ambient[2]);
+	int diff_loc = glGetUniformLocation(shaderId, "mdiff");
+	if (diff_loc != -1)
+		glUniform3f(diff_loc, mesh.diffuse[0], mesh.diffuse[1], mesh.diffuse[2]);
+	int spec_loc = glGetUniformLocation(shaderId, "mspec");
+	if (spec_loc != -1)
+		glUniform3f(spec_loc, mesh.specular[0], mesh.specular[1], mesh.specular[2]);
+	int shine_loc = glGetUniformLocation(shaderId, "mshininess");
+	if (shine_loc != -1)
+		glUniform1i(shine_loc, mesh.shininess);
+	int textured_loc = glGetUniformLocation(shaderId, "mtextured");
+	if (textured_loc != -1)
+		glUniform1i(textured_loc, mesh.textured);
+}
 
-	glm::vec3 eye = glm::vec3(glm::sin(camangle)*camdst, 1.0f, glm::cos(camangle)*camdst) + glm::vec3(campos[0], campos[1], campos[2]);
+void applyLightParams(GLuint shaderId, LightStats &light) {
+	glUseProgram(shaderId);
+	int lpos_loc = glGetUniformLocation(shaderId, "lpos");
+	if (lpos_loc != -1) {
+		glm::vec4 lposraw = glm::vec4(light.pos[0], light.pos[1], light.pos[2], 1);
+		glm::vec4 camLight = V * lposraw;
+		glUniform3f(lpos_loc, camLight[0], camLight[1], camLight[2]);
+	}
+	int amb_loc = glGetUniformLocation(shaderId, "lamb");
+	if (amb_loc != -1)
+		glUniform3f(amb_loc, light.ambient[0], light.ambient[1], light.ambient[2]);
+	int diff_loc = glGetUniformLocation(shaderId, "ldiff");
+	if (diff_loc != -1)
+		glUniform3f(diff_loc, light.diffuse[0], light.diffuse[1], light.diffuse[2]);
+	int spec_loc = glGetUniformLocation(shaderId, "lspec");
+	if (spec_loc != -1)
+		glUniform3f(spec_loc, light.specular[0], light.specular[1], light.specular[2]);
+	int falloff_loc = glGetUniformLocation(shaderId, "lfalloff");
+	if (falloff_loc != -1)
+		glUniform3f(falloff_loc, light.falloff[0], light.falloff[1], light.falloff[2]);
+}
+
+void drawMesh(MeshStats &mesh) {
+	if (!mesh.visible)
+		return;
+	applyMaterialParams(mesh_shader_program, mesh);
+	glm::mat4 T = glm::translate(glm::vec3(mesh.meshpos[0], mesh.meshpos[1], mesh.meshpos[2]));
+	glm::mat4 M = T * glm::rotate(mesh.angle*3.14159f/180.0f, glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(mesh.scale[0] * mesh.meshData.mScaleFactor, mesh.scale[1] * mesh.meshData.mScaleFactor, mesh.scale[2] * mesh.meshData.mScaleFactor));
+
+	glm::vec3 eye = glm::vec3(glm::cos(campitch)*glm::sin(camangle)*camdst, glm::sin(campitch)*camdst, glm::cos(campitch)*glm::cos(camangle)*camdst) + glm::vec3(campos[0], campos[1], campos[2]);
 	glm::vec3 tgt = glm::vec3(0.0f, 0.0f, 0.0f) + glm::vec3(campos[0], campos[1], campos[2]);
-	glm::mat4 V = glm::lookAt(eye, tgt, glm::vec3(0.0f, 1.0f, 0.0f));
+	V = glm::lookAt(eye, tgt, glm::vec3(0.0f, 1.0f, 0.0f));
 	int width, height;
 	glfwGetWindowSize(toolkit::getWindow(), &width, &height);
-	glm::mat4 P = glm::perspective(round(camstats[0]), ((float)width)/height, camstats[1], camstats[2]);
+	glm::mat4 P = glm::perspective((camstats[0] * 3.14159f / 180.0f), ((float)width) / height, camstats[1], camstats[2]);
 
 	glUseProgram(mesh_shader_program);
-
+	//glPolygonMode(GL_FRONT, GL_TRIANGLES);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
 	int PVM_loc = glGetUniformLocation(mesh_shader_program, "PVM");
 	if (PVM_loc != -1)
 	{
@@ -115,16 +429,81 @@ void drawAkko() {
 		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(N));
 	}
 
-	/*int tex_loc = glGetUniformLocation(mesh_shader_program, "diffuse_tex");
+	int tex_loc = glGetUniformLocation(mesh_shader_program, "diffuse_tex");
 	if (tex_loc != -1)
 	{
 		glUniform1i(tex_loc, 0); // we bound our texture to texture unit 0
-	}*/
+	}
 
-	glBindVertexArray(akko.mVao);
-	glDrawElements(GL_TRIANGLES, akko.mSubmesh[0].mNumIndices, GL_UNSIGNED_INT, 0);
-
+	glBindVertexArray(mesh.meshData.mVao);
+	glDrawElements(GL_TRIANGLES, mesh.meshData.mSubmesh[0].mNumIndices, GL_UNSIGNED_INT, 0);
+	//For meshes with multiple submeshes use mesh_data.DrawMesh(); 
 }
+
+
+void drawMeshOutlines(MeshStats &mesh) {
+	if (!mesh.visible)
+		return;
+	applyMaterialParams(curve_shader_program, mesh);
+	glm::mat4 T = glm::translate(glm::vec3(mesh.meshpos[0], mesh.meshpos[1], mesh.meshpos[2]));
+	glm::mat4 M = T * glm::rotate(mesh.angle*3.14159f / 180.0f, glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(mesh.scale[0] * mesh.meshData.mScaleFactor, mesh.scale[1] * mesh.meshData.mScaleFactor, mesh.scale[2] * mesh.meshData.mScaleFactor));
+
+	glm::vec3 eye = glm::vec3(glm::cos(campitch)*glm::sin(camangle)*camdst, glm::sin(campitch)*camdst, glm::cos(campitch)*glm::cos(camangle)*camdst) + glm::vec3(campos[0], campos[1], campos[2]);
+	glm::vec3 tgt = glm::vec3(0.0f, 0.0f, 0.0f) + glm::vec3(campos[0], campos[1], campos[2]);
+	V = glm::lookAt(eye, tgt, glm::vec3(0.0f, 1.0f, 0.0f));
+	int width, height;
+	glfwGetWindowSize(toolkit::getWindow(), &width, &height);
+	glm::mat4 P = glm::perspective((camstats[0] * 3.14159f / 180.0f), ((float)width) / height, camstats[1], camstats[2]);
+
+	glUseProgram(curve_shader_program);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	int PVM_loc = glGetUniformLocation(curve_shader_program, "PVM");
+	if (PVM_loc != -1)
+	{
+		glm::mat4 PVM = P * V*M;
+		glUniformMatrix4fv(PVM_loc, 1, false, glm::value_ptr(PVM));
+	}
+
+	int P_loc = glGetUniformLocation(curve_shader_program, "P");
+	if (P_loc != -1)
+	{
+		glUniformMatrix4fv(P_loc, 1, false, glm::value_ptr(P));
+	}
+
+	int VM_loc = glGetUniformLocation(curve_shader_program, "VM");
+	if (VM_loc != -1)
+	{
+		glm::mat4 VM = V * M;
+		glUniformMatrix4fv(VM_loc, 1, false, glm::value_ptr(VM));
+	}
+
+	int V_loc = glGetUniformLocation(curve_shader_program, "myV");
+	if (V_loc != -1)
+	{
+		glm::mat4 myV = glm::inverseTranspose(V);
+		glUniformMatrix4fv(V_loc, 1, false, glm::value_ptr(V));
+	}
+
+	int N_loc = glGetUniformLocation(curve_shader_program, "N");
+	if (N_loc != -1)
+	{
+		glm::mat3 N = glm::inverseTranspose(glm::mat3(V*M));
+		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(N));
+	}
+
+	int tex_loc = glGetUniformLocation(mesh_shader_program, "diffuse_tex");
+	if (tex_loc != -1)
+	{
+		glUniform1i(tex_loc, 0); // we bound our texture to texture unit 0
+	}
+
+	glBindVertexArray(mesh.meshData.mVao);
+	glDrawElements(GL_LINES, mesh.outlines.numElements, GL_UNSIGNED_INT, 0);
+	//For meshes with multiple submeshes use mesh_data.DrawMesh(); 
+}
+
 
 void updateScene(double delta) {
 
@@ -140,6 +519,86 @@ void updateScene(double delta) {
 	}
 }
 
+bool first = true;
+
+//Draw the ImGui user interface
+void draw_gui()
+{
+	ImGui::Begin("Camera Sliders"); {
+		ImGui::Checkbox("Clear", &clear);
+		if (ImGui::ColorEdit4("Clear Color", ccol, true)) {
+			glClearColor(ccol[0], ccol[1], ccol[2], ccol[3]);
+		}
+		ImGui::SliderFloat3("Camera Position", campos, -10.0f, +10.0f);
+		ImGui::Columns(3);
+		ImGui::SliderFloat("FoV", &(camstats[0]), 1, 179);
+		ImGui::NextColumn();
+		ImGui::SliderFloat("Near", &(camstats[1]), 0.01f, 100.0f);
+		ImGui::NextColumn();
+		ImGui::SliderFloat("Far", &(camstats[2]), 1.0f, 100.0f);
+		ImGui::Columns(1);
+		ImGui::SliderFloat("Camera Angle", &camangle, -3.14159f, +3.14159f);
+		ImGui::SliderFloat("Camera Pitch", &campitch, -3.14159f, +3.14159f);
+		ImGui::SliderFloat("Camera Distance", &camdst, 1, 20);
+		if (ImGui::Button("Reload Shaders")) {
+			reload_shader();
+		}
+	}
+	ImGui::End();
+
+	// Meshes
+	ImGui::Begin("Scene Lighting Sliders");
+	{
+		ImGui::Text("Lights");
+		ImGui::Indent();
+		for (int id = 0; id < lights.size(); ++id) {
+			LightStats* current = &lights[id];
+			if (ImGui::TreeNode("Point Light"))
+			{
+				ImGui::SliderFloat3("Position", current->pos, -3.0f, +3.0f);
+				ImGui::SliderFloat3("Falloff(1,d,d^2)", current->falloff, 0, +3.0f);
+				ImGui::ColorEdit3("Ambient", current->ambient);
+				ImGui::ColorEdit3("Diffuse", current->diffuse);
+				ImGui::ColorEdit3("Specular", current->specular);
+				ImGui::TreePop();
+			}
+		}
+		ImGui::Unindent();
+		ImGui::Text("Meshes");
+		ImGui::Indent();
+		for (int id = 0; id < meshes.size(); ++id) {
+			MeshStats* current = &meshes[id];
+			if(first)
+				ImGui::SetNextItemOpen(true);
+			first = false;
+			if (ImGui::TreeNode(current->meshName.c_str()))
+			{
+				ImGui::Indent();
+				ImGui::TextColored(ImVec4(1, 1, 0, 1), "Placement");
+				ImGui::Checkbox("Visible", &(current->visible));
+				ImGui::SliderFloat("Angle", &(current->angle), -360.0f, +360.0f);
+				ImGui::SliderFloat3("Position", current->meshpos, -3.0f, +3.0f);
+				ImGui::SliderFloat3("Scale", current->scale, -3.0f, +3.0f);
+				ImGui::SliderFloat4("Params", current->params, 0.0f, 1.0f);
+				//material
+				ImGui::TextColored(ImVec4(1, 1, 0, 1), "Material");
+				ImGui::ColorEdit3("Ambient", current->ambient);
+				ImGui::ColorEdit3("Diffuse", current->diffuse);
+				ImGui::ColorEdit3("Specular", current->specular);
+				ImGui::SliderInt("Shininess", &(current->shininess), 1, 100);
+				ImGui::Checkbox("Textured", &(current->textured));
+				ImGui::Unindent();
+				ImGui::TreePop();
+			}
+		}
+		ImGui::Unindent();
+	}
+	ImGui::End();
+	mouseover_imgui = false;
+	mouseover_imgui |= ImGui::IsAnyWindowHovered();
+	mouseover_imgui |= ImGui::IsAnyItemHovered();
+}
+
 void renderScene() {
 	// Start the Dear ImGui frame
 	ImGui_ImplOpenGL3_NewFrame();
@@ -153,29 +612,14 @@ void renderScene() {
 	glVertex3f(1, 1, 0);
 	glEnd();*/
 
-	drawAkko();
-
-	ImGui::Begin("Tst Window");
-	ImGui::Text("Hello");
-	if (ImGui::Button("Load Model")) {
-		std::cout << "hi\n";
+	/*for (auto mesh : meshes) {
+		drawMesh(mesh);
+	}*/
+	for (auto mesh : meshes) {
+		drawMeshOutlines(mesh);
 	}
-	ImGui::End();
 
-	ImGui::Begin("Camera Sliders");
-	ImGui::Checkbox("Clear", &clear);
-	ImGui::SliderFloat3("Camera Position", campos, -10.0f, +10.0f);
-	ImGui::Columns(3);
-	ImGui::SliderFloat("FoV", &(camstats[0]), 30, 170);
-	ImGui::NextColumn();
-	ImGui::SliderFloat("Near", &(camstats[1]), 1.0f, 100.0f);
-	ImGui::NextColumn();
-	ImGui::SliderFloat("Far", &(camstats[2]), 1.0f, 100.0f);
-	ImGui::Columns(1);
-	ImGui::SliderFloat("Camera Distance", &(camdst), 1.0f, 30.0f);
-	ImGui::SliderFloat("Camera Angle", &camangle, -3.14159f, +3.14159f);
-	ImGui::End();
-
+	draw_gui();
 
 	// Render ImGui
 	ImGui::Render();

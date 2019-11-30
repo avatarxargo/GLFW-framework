@@ -160,6 +160,10 @@
     <ClCompile Include="src\toolkit\toolkit.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\bezier_fs.glsl" />
+    <None Include="shaders\bezier_vs.glsl" />
+    <None Include="shaders\curve_fs.glsl" />
+    <None Include="shaders\curve_vs.glsl" />
     <None Include="shaders\gui_demo_fs.glsl" />
     <None Include="shaders\gui_demo_vs.glsl" />
     <None Include="shaders\phong_fs.glsl" />

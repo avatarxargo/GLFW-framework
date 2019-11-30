@@ -31,3 +31,20 @@ GLuint LoadTexture(const std::string& fname)
 
    return tex_id;
 }
+
+GLFWimage LoadGLFWImage(const std::string& fname)
+{
+	FIBITMAP* tempImg = FreeImage_Load(FreeImage_GetFileType(fname.c_str(), 0), fname.c_str());
+	FIBITMAP* img = FreeImage_ConvertTo32Bits(tempImg);
+	FreeImage_Unload(tempImg);
+
+	GLuint w = FreeImage_GetWidth(img);
+	GLuint h = FreeImage_GetHeight(img);
+	GLuint scanW = FreeImage_GetPitch(img);
+
+	GLubyte* byteImg = new GLubyte[h*scanW];
+	FreeImage_ConvertToRawBits(byteImg, img, scanW, 32, FI_RGBA_RED_MASK, FI_RGBA_GREEN_MASK, FI_RGBA_BLUE_MASK, TRUE);
+	FreeImage_Unload(img);
+
+	return {(int)w,(int)h,byteImg};
+}

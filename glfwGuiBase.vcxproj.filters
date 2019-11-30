@@ -127,5 +127,17 @@
     <None Include="shaders\phong_vs.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shaders\bezier_fs.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\bezier_vs.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\curve_fs.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\curve_vs.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
