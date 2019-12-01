@@ -5,12 +5,13 @@ uniform vec4 vecparam; //shade, animspeed, animsquish, animwobble
 uniform float time;
 uniform mat4 VM;
 
-out vec4 fragcolor;           
+out vec4 fragcolor;
 in vec2 tex_coord;
-in vec3 pospos;  
-in vec3 normal; 
- 
-void main(void) {
-   fragcolor = vec4(normal*0.5+0.5,1);
-}
+in vec3 position;
+in vec3 pospos;
+in vec3 normal;
 
+void main(void) {
+   //fragcolor = vec4(1-position.z/5,position.z/5,position.z/5,1);
+   fragcolor = vec4(0,0,0,1);
+}

@@ -19,6 +19,8 @@
 #include "../toolkit/stolen/InitShader.h"
 #include "../toolkit/stolen/LoadMesh.h"
 #include "../toolkit/stolen/LoadTexture.h"
+#include "../toolkit/data/Mesh.h"
+#include "../toolkit/data/Camera.h"
 
 // =================== variables ==========================
 
@@ -27,7 +29,7 @@ static const std::string mesh_fragment_shader("shaders/gui_demo_fs.glsl");
 static const std::string curve_vertex_shader("shaders/curve_vs.glsl");
 static const std::string curve_geometry_shader("shaders/curve_gm.glsl");
 static const std::string curve_fragment_shader("shaders/curve_fs.glsl");
-static std::vector <std::string> mesh_names = { "data/akko.obj", "data/tstglobe.obj" };
+static std::vector <std::string> mesh_names = { "data/tstglobe.obj" };//  "data/akko.obj",
 
 GLuint mesh_shader_program = -1;
 GLuint curve_shader_program = -1;
@@ -35,17 +37,18 @@ GLuint texture_id = -1;
 
 // =================== models ==========================
 
-glm::mat4 P;
-glm::mat4 V;
-
 // V Here it is declared
-float campos[3] = { 0.0f,0.0f,0.0f };
-float camstats[3] = { 40.0f,0.01f,100.0f };
-float camangle = 0.0f;
-float campitch = 0.0f;
-float camdst = 5.0f;
-bool clear = true;
+toolkit::Camera cameraStats;
 float ccol[4] = { 10.0f / 255.0f,19.0f / 255.0f,28.0f / 255.0f,1.0f };
+
+struct Settings {
+	bool paintSurfaces = true;
+	bool paintLineart = true;
+	bool paintTrMesh = false;
+	bool clear = true;
+	float threshold = 30;
+	int outlineMode = 0;
+} settings;
 
 struct LightStats {
 	float pos[3] = { 0.0f,0.0f,0.0f };
@@ -73,8 +76,9 @@ struct MeshStats {
 	float specular[3] = { 0.0f,0.0f,0.0f };
 	int shininess = 100;
 	bool textured = true;
-	MeshData meshData;
-	OutlineEbo outlines;
+	//MeshData meshData;
+	toolkit::TrMesh trMesh;
+	//OutlineEbo outlines;
 };
 
 std::vector<MeshStats> meshes;
@@ -85,9 +89,9 @@ std::vector<LightStats> lights = {
 // ====================================================
 
 // looks at the mesh from the current camera and detects outlines
-OutlineEbo generateOutlines(MeshData &mesh) {
+OutlineEbo generateOutlines(MeshStats &mesh) {
 	OutlineEbo ret;
-	int size = 50000;
+	int size = mesh.trMesh.elementCount-1;
 	for (int i = 0; i < size; ++i) {
 		ret.eboData.push_back(i);
 		ret.eboData.push_back(i+1);
@@ -97,7 +101,7 @@ OutlineEbo generateOutlines(MeshData &mesh) {
 }
 
 void addMesh(std::string path) {
-	MeshData meshData = LoadMesh(path);
+	//MeshData meshData = LoadMesh(path);
 	MeshStats newMesh = {
 		true,
 		path,
@@ -111,9 +115,9 @@ void addMesh(std::string path) {
 		{ 1.0f,1.0f,1.0f },
 		20.0f,
 		true,
-		meshData,
-		generateOutlines(meshData)
+		toolkit::loadTrMeshFromFile(path)
 	};
+	toolkit::pushTrMeshBuffers(newMesh.trMesh, mesh_shader_program);
 	meshes.push_back(newMesh);
 }
 
@@ -182,16 +186,16 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 		dy = 0;
 	}
 	if (ML|| MR || MM) {
-		camangle -= 6*dx / width;
+		cameraStats.camangle -= 6*dx / width;
 	}
 	if (ML) {
-		campos[1] += 3 * dy / height;
+		cameraStats.campos[1] += 3 * dy / height;
 	}
 	if (MM) {
-		campitch += 5 * dy / height;
+		cameraStats.campitch += 5 * dy / height;
 	}
 	if (MR) {
-		camdst -= 5 * dy / height;
+		cameraStats.camdst -= 5 * dy / height;
 	}
 	lx = xpos;
 	ly = ypos;
@@ -334,6 +338,10 @@ void createScene() {
 	glfwSetWindowIcon(toolkit::getWindow(), 1, &iconImage);
 	glfwSetWindowTitle(toolkit::getWindow(), "Advanced Anime Shader");
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_DST_ALPHA);
+	glLineWidth(5);
 }
 
 void applyMaterialParams(GLuint shaderId, MeshStats &mesh) {
@@ -360,7 +368,7 @@ void applyLightParams(GLuint shaderId, LightStats &light) {
 	int lpos_loc = glGetUniformLocation(shaderId, "lpos");
 	if (lpos_loc != -1) {
 		glm::vec4 lposraw = glm::vec4(light.pos[0], light.pos[1], light.pos[2], 1);
-		glm::vec4 camLight = V * lposraw;
+		glm::vec4 camLight = cameraStats.V * lposraw;
 		glUniform3f(lpos_loc, camLight[0], camLight[1], camLight[2]);
 	}
 	int amb_loc = glGetUniformLocation(shaderId, "lamb");
@@ -382,14 +390,14 @@ void drawMesh(MeshStats &mesh) {
 		return;
 	applyMaterialParams(mesh_shader_program, mesh);
 	glm::mat4 T = glm::translate(glm::vec3(mesh.meshpos[0], mesh.meshpos[1], mesh.meshpos[2]));
-	glm::mat4 M = T * glm::rotate(mesh.angle*3.14159f/180.0f, glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(mesh.scale[0] * mesh.meshData.mScaleFactor, mesh.scale[1] * mesh.meshData.mScaleFactor, mesh.scale[2] * mesh.meshData.mScaleFactor));
+	glm::mat4 M = T * glm::rotate(mesh.angle*3.14159f/180.0f, glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(mesh.scale[0] * mesh.trMesh.scale, mesh.scale[1] * mesh.trMesh.scale, mesh.scale[2] * mesh.trMesh.scale));
 
-	glm::vec3 eye = glm::vec3(glm::cos(campitch)*glm::sin(camangle)*camdst, glm::sin(campitch)*camdst, glm::cos(campitch)*glm::cos(camangle)*camdst) + glm::vec3(campos[0], campos[1], campos[2]);
-	glm::vec3 tgt = glm::vec3(0.0f, 0.0f, 0.0f) + glm::vec3(campos[0], campos[1], campos[2]);
-	V = glm::lookAt(eye, tgt, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::vec3 eye = glm::vec3(glm::cos(cameraStats.campitch)*glm::sin(cameraStats.camangle)*cameraStats.camdst, glm::sin(cameraStats.campitch)*cameraStats.camdst, glm::cos(cameraStats.campitch)*glm::cos(cameraStats.camangle)*cameraStats.camdst) + glm::vec3(cameraStats.campos[0], cameraStats.campos[1], cameraStats.campos[2]);
+	glm::vec3 tgt = glm::vec3(0.0f, 0.0f, 0.0f) + glm::vec3(cameraStats.campos[0], cameraStats.campos[1], cameraStats.campos[2]);
+	cameraStats.V = glm::lookAt(eye, tgt, glm::vec3(0.0f, 1.0f, 0.0f));
 	int width, height;
 	glfwGetWindowSize(toolkit::getWindow(), &width, &height);
-	glm::mat4 P = glm::perspective((camstats[0] * 3.14159f / 180.0f), ((float)width) / height, camstats[1], camstats[2]);
+	cameraStats.P = glm::perspective((cameraStats.camstats[0] * 3.14159f / 180.0f), ((float)width) / height, cameraStats.camstats[1], cameraStats.camstats[2]);
 
 	glUseProgram(mesh_shader_program);
 	//glPolygonMode(GL_FRONT, GL_TRIANGLES);
@@ -398,35 +406,35 @@ void drawMesh(MeshStats &mesh) {
 	int PVM_loc = glGetUniformLocation(mesh_shader_program, "PVM");
 	if (PVM_loc != -1)
 	{
-		glm::mat4 PVM = P * V*M;
-		glUniformMatrix4fv(PVM_loc, 1, false, glm::value_ptr(PVM));
+		cameraStats.PVM = cameraStats.P * cameraStats.V * M;
+		glUniformMatrix4fv(PVM_loc, 1, false, glm::value_ptr(cameraStats.PVM));
 	}
 
 	int P_loc = glGetUniformLocation(mesh_shader_program, "P");
 	if (P_loc != -1)
 	{
-		glUniformMatrix4fv(P_loc, 1, false, glm::value_ptr(P));
+		glUniformMatrix4fv(P_loc, 1, false, glm::value_ptr(cameraStats.P));
 	}
 
 	int VM_loc = glGetUniformLocation(mesh_shader_program, "VM");
 	if (VM_loc != -1)
 	{
-		glm::mat4 VM = V * M;
+		glm::mat4 VM = cameraStats.V * M;
 		glUniformMatrix4fv(VM_loc, 1, false, glm::value_ptr(VM));
 	}
 
 	int V_loc = glGetUniformLocation(mesh_shader_program, "myV");
 	if (V_loc != -1)
 	{
-		glm::mat4 myV = glm::inverseTranspose(V);
-		glUniformMatrix4fv(V_loc, 1, false, glm::value_ptr(V));
+		//glm::mat4 myV = glm::inverseTranspose(V);
+		glUniformMatrix4fv(V_loc, 1, false, glm::value_ptr(cameraStats.V));
 	}
 
 	int N_loc = glGetUniformLocation(mesh_shader_program, "N");
 	if (N_loc != -1)
 	{
-		glm::mat3 N = glm::inverseTranspose(glm::mat3(V*M));
-		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(N));
+		cameraStats.N = glm::inverseTranspose(glm::mat3(cameraStats.V*M));
+		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(cameraStats.N));
 	}
 
 	int tex_loc = glGetUniformLocation(mesh_shader_program, "diffuse_tex");
@@ -435,9 +443,14 @@ void drawMesh(MeshStats &mesh) {
 		glUniform1i(tex_loc, 0); // we bound our texture to texture unit 0
 	}
 
-	glBindVertexArray(mesh.meshData.mVao);
-	glDrawElements(GL_TRIANGLES, mesh.meshData.mSubmesh[0].mNumIndices, GL_UNSIGNED_INT, 0);
-	//For meshes with multiple submeshes use mesh_data.DrawMesh(); 
+	//if (settings.paintTrMesh) {
+		glBindVertexArray(mesh.trMesh.vao);
+		glDrawElements(GL_TRIANGLES, mesh.trMesh.elementCount*3, GL_UNSIGNED_INT, 0);
+	/*}
+	else {
+		glBindVertexArray(mesh.meshData.mVao);
+		glDrawElements(GL_TRIANGLES, mesh.meshData.mSubmesh[0].mNumIndices, GL_UNSIGNED_INT, 0);
+	}*/
 }
 
 
@@ -446,14 +459,14 @@ void drawMeshOutlines(MeshStats &mesh) {
 		return;
 	applyMaterialParams(curve_shader_program, mesh);
 	glm::mat4 T = glm::translate(glm::vec3(mesh.meshpos[0], mesh.meshpos[1], mesh.meshpos[2]));
-	glm::mat4 M = T * glm::rotate(mesh.angle*3.14159f / 180.0f, glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(mesh.scale[0] * mesh.meshData.mScaleFactor, mesh.scale[1] * mesh.meshData.mScaleFactor, mesh.scale[2] * mesh.meshData.mScaleFactor));
+	glm::mat4 M = T * glm::rotate(mesh.angle*3.14159f / 180.0f, glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(mesh.scale[0] * mesh.trMesh.scale, mesh.scale[1] * mesh.trMesh.scale, mesh.scale[2] * mesh.trMesh.scale));
 
-	glm::vec3 eye = glm::vec3(glm::cos(campitch)*glm::sin(camangle)*camdst, glm::sin(campitch)*camdst, glm::cos(campitch)*glm::cos(camangle)*camdst) + glm::vec3(campos[0], campos[1], campos[2]);
-	glm::vec3 tgt = glm::vec3(0.0f, 0.0f, 0.0f) + glm::vec3(campos[0], campos[1], campos[2]);
-	V = glm::lookAt(eye, tgt, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::vec3 eye = glm::vec3(glm::cos(cameraStats.campitch)*glm::sin(cameraStats.camangle)*cameraStats.camdst, glm::sin(cameraStats.campitch)*cameraStats.camdst, glm::cos(cameraStats.campitch)*glm::cos(cameraStats.camangle)*cameraStats.camdst) + glm::vec3(cameraStats.campos[0], cameraStats.campos[1], cameraStats.campos[2]);
+	glm::vec3 tgt = glm::vec3(0.0f, 0.0f, 0.0f) + glm::vec3(cameraStats.campos[0], cameraStats.campos[1], cameraStats.campos[2]);
+	cameraStats.V = glm::lookAt(eye, tgt, glm::vec3(0.0f, 1.0f, 0.0f));
 	int width, height;
 	glfwGetWindowSize(toolkit::getWindow(), &width, &height);
-	glm::mat4 P = glm::perspective((camstats[0] * 3.14159f / 180.0f), ((float)width) / height, camstats[1], camstats[2]);
+	cameraStats.P = glm::perspective((cameraStats.camstats[0] * 3.14159f / 180.0f), ((float)width) / height, cameraStats.camstats[1], cameraStats.camstats[2]);
 
 	glUseProgram(curve_shader_program);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
@@ -462,35 +475,35 @@ void drawMeshOutlines(MeshStats &mesh) {
 	int PVM_loc = glGetUniformLocation(curve_shader_program, "PVM");
 	if (PVM_loc != -1)
 	{
-		glm::mat4 PVM = P * V*M;
-		glUniformMatrix4fv(PVM_loc, 1, false, glm::value_ptr(PVM));
+		cameraStats.PVM = cameraStats.P * cameraStats.V* M;
+		glUniformMatrix4fv(PVM_loc, 1, false, glm::value_ptr(cameraStats.PVM));
 	}
 
 	int P_loc = glGetUniformLocation(curve_shader_program, "P");
 	if (P_loc != -1)
 	{
-		glUniformMatrix4fv(P_loc, 1, false, glm::value_ptr(P));
+		glUniformMatrix4fv(P_loc, 1, false, glm::value_ptr(cameraStats.P));
 	}
 
 	int VM_loc = glGetUniformLocation(curve_shader_program, "VM");
 	if (VM_loc != -1)
 	{
-		glm::mat4 VM = V * M;
+		glm::mat4 VM = cameraStats.V * M;
 		glUniformMatrix4fv(VM_loc, 1, false, glm::value_ptr(VM));
 	}
 
 	int V_loc = glGetUniformLocation(curve_shader_program, "myV");
 	if (V_loc != -1)
 	{
-		glm::mat4 myV = glm::inverseTranspose(V);
-		glUniformMatrix4fv(V_loc, 1, false, glm::value_ptr(V));
+		//glm::mat4 myV = glm::inverseTranspose(V);
+		glUniformMatrix4fv(V_loc, 1, false, glm::value_ptr(cameraStats.V));
 	}
 
 	int N_loc = glGetUniformLocation(curve_shader_program, "N");
 	if (N_loc != -1)
 	{
-		glm::mat3 N = glm::inverseTranspose(glm::mat3(V*M));
-		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(N));
+		cameraStats.N = glm::inverseTranspose(glm::mat3(cameraStats.V*M));
+		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(cameraStats.N));
 	}
 
 	int tex_loc = glGetUniformLocation(mesh_shader_program, "diffuse_tex");
@@ -499,9 +512,11 @@ void drawMeshOutlines(MeshStats &mesh) {
 		glUniform1i(tex_loc, 0); // we bound our texture to texture unit 0
 	}
 
-	glBindVertexArray(mesh.meshData.mVao);
-	glDrawElements(GL_LINES, mesh.outlines.numElements, GL_UNSIGNED_INT, 0);
-	//For meshes with multiple submeshes use mesh_data.DrawMesh(); 
+	glBindVertexArray(mesh.trMesh.vao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.trMesh.outlineEbo);
+	glDrawElements(GL_LINES, mesh.trMesh.outline.size(), GL_UNSIGNED_INT, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.trMesh.ebo);
+	glBindVertexArray(0);
 }
 
 
@@ -525,21 +540,21 @@ bool first = true;
 void draw_gui()
 {
 	ImGui::Begin("Camera Sliders"); {
-		ImGui::Checkbox("Clear", &clear);
+		ImGui::Checkbox("Clear", &settings.clear);
 		if (ImGui::ColorEdit4("Clear Color", ccol, true)) {
 			glClearColor(ccol[0], ccol[1], ccol[2], ccol[3]);
 		}
-		ImGui::SliderFloat3("Camera Position", campos, -10.0f, +10.0f);
+		ImGui::SliderFloat3("Camera Position", cameraStats.campos, -10.0f, +10.0f);
 		ImGui::Columns(3);
-		ImGui::SliderFloat("FoV", &(camstats[0]), 1, 179);
+		ImGui::SliderFloat("FoV", &(cameraStats.camstats[0]), 1, 179);
 		ImGui::NextColumn();
-		ImGui::SliderFloat("Near", &(camstats[1]), 0.01f, 100.0f);
+		ImGui::SliderFloat("Near", &(cameraStats.camstats[1]), 0.01f, 100.0f);
 		ImGui::NextColumn();
-		ImGui::SliderFloat("Far", &(camstats[2]), 1.0f, 100.0f);
+		ImGui::SliderFloat("Far", &(cameraStats.camstats[2]), 1.0f, 100.0f);
 		ImGui::Columns(1);
-		ImGui::SliderFloat("Camera Angle", &camangle, -3.14159f, +3.14159f);
-		ImGui::SliderFloat("Camera Pitch", &campitch, -3.14159f, +3.14159f);
-		ImGui::SliderFloat("Camera Distance", &camdst, 1, 20);
+		ImGui::SliderFloat("Camera Angle", &cameraStats.camangle, -3.14159f, +3.14159f);
+		ImGui::SliderFloat("Camera Pitch", &cameraStats.campitch, -3.14159f, +3.14159f);
+		ImGui::SliderFloat("Camera Distance", &cameraStats.camdst, 1, 20);
 		if (ImGui::Button("Reload Shaders")) {
 			reload_shader();
 		}
@@ -549,6 +564,19 @@ void draw_gui()
 	// Meshes
 	ImGui::Begin("Scene Lighting Sliders");
 	{
+		ImGui::Text("Shaders");
+		ImGui::Indent();
+		ImGui::Checkbox("Render Surfaces", &settings.paintSurfaces);
+		ImGui::SameLine();
+		ImGui::Checkbox("Render Lineart", &settings.paintLineart);
+		ImGui::SliderAngle("Threshold:", &settings.threshold, 0, 360);
+		if (ImGui::RadioButton("Outline: Face Angle", settings.outlineMode==0))
+			settings.outlineMode = 0;
+		ImGui::SameLine();
+		if (ImGui::RadioButton("Outline: Camera Angle", settings.outlineMode == 1))
+			settings.outlineMode = 1;
+		ImGui::Unindent();
+		//
 		ImGui::Text("Lights");
 		ImGui::Indent();
 		for (int id = 0; id < lights.size(); ++id) {
@@ -605,19 +633,18 @@ void renderScene() {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	/*glBegin(GL_TRIANGLES);
-	glVertex3f(0, 0, 0);
-	glVertex3f(1, 0, 0);
-	glVertex3f(1, 1, 0);
-	glEnd();*/
+	if(settings.clear)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	/*for (auto mesh : meshes) {
-		drawMesh(mesh);
-	}*/
-	for (auto mesh : meshes) {
-		drawMeshOutlines(mesh);
-	}
+	if(settings.paintSurfaces)
+		for (auto mesh : meshes) {
+			drawMesh(mesh);
+		}
+	if (settings.paintLineart)
+		for (auto mesh : meshes) {
+			toolkit::genTrMeshGenLineart(mesh.trMesh, cameraStats, settings.threshold);
+			drawMeshOutlines(mesh);
+		}
 
 	draw_gui();
 

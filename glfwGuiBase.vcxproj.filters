@@ -72,6 +72,9 @@
     <ClInclude Include="src\launcher\scene.h">
       <Filter>src\launcher</Filter>
     </ClInclude>
+    <ClInclude Include="src\toolkit\data\Camera.h">
+      <Filter>src\toolkit\data</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\toolkit\toolkit.cpp">
