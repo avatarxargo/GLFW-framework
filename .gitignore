@@ -37,3 +37,9 @@
 *.pdb
 *.iobj
 *.pdb
+*.iobj
+*.ipdb
+Release/glfwGuiBase.ipdb
+Release/glfwGuiBase.iobj
+*.log
+*.pdb
