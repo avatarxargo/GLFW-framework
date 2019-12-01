@@ -32,3 +32,8 @@
 *.app
 
 .vs/*
+*.tlog
+*.log
+*.pdb
+*.iobj
+*.pdb

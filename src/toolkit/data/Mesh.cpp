@@ -53,7 +53,7 @@ toolkit::TrMesh toolkit::loadTrMeshFromFile(const std::string& path) {
 	return mesh;
 }
 
-void toolkit::genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &camera, float threshold) {
+void toolkit::genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &camera, float threshold, int outlineMode) {
 	trmesh.outline.clear();
 	for (int i = 0; i < trmesh.edges.size(); ++i) {
 		TrEdge *edge = &trmesh.edges[i];
@@ -63,9 +63,14 @@ void toolkit::genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &came
 		// evaluate:
 		TrFaceInfo* faceinfoA = &trmesh.face_info[edge->faces[0]];
 		TrFaceInfo* faceinfoB = &trmesh.face_info[edge->faces[1]];
-		float d = glm::abs(dot(faceinfoA->normal, faceinfoB->normal));
-		if (d < threshold)
-			highlight = true;
+		if (outlineMode == 0) {
+			float d = dot(faceinfoA->normal, faceinfoB->normal);
+			if (d < threshold)
+				highlight = true;
+		}
+		else if (outlineMode == 1) {
+			
+		}
 		// add:
 		if (highlight) {
 			trmesh.outline.push_back(trmesh.edges[i].from);

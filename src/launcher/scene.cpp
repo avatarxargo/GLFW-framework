@@ -46,7 +46,7 @@ struct Settings {
 	bool paintLineart = true;
 	bool paintTrMesh = false;
 	bool clear = true;
-	float threshold = 30;
+	float threshold = 0.5;
 	int outlineMode = 0;
 } settings;
 
@@ -433,7 +433,7 @@ void drawMesh(MeshStats &mesh) {
 	int N_loc = glGetUniformLocation(mesh_shader_program, "N");
 	if (N_loc != -1)
 	{
-		cameraStats.N = glm::inverseTranspose(glm::mat3(cameraStats.V*M));
+		cameraStats.N = glm::inverseTranspose(cameraStats.V*M);
 		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(cameraStats.N));
 	}
 
@@ -502,7 +502,7 @@ void drawMeshOutlines(MeshStats &mesh) {
 	int N_loc = glGetUniformLocation(curve_shader_program, "N");
 	if (N_loc != -1)
 	{
-		cameraStats.N = glm::inverseTranspose(glm::mat3(cameraStats.V*M));
+		cameraStats.N = glm::inverseTranspose(cameraStats.V*M);
 		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(cameraStats.N));
 	}
 
@@ -642,7 +642,7 @@ void renderScene() {
 		}
 	if (settings.paintLineart)
 		for (auto mesh : meshes) {
-			toolkit::genTrMeshGenLineart(mesh.trMesh, cameraStats, settings.threshold);
+			toolkit::genTrMeshGenLineart(mesh.trMesh, cameraStats, settings.threshold, settings.outlineMode);
 			drawMeshOutlines(mesh);
 		}
 

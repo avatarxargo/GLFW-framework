@@ -67,7 +67,7 @@ namespace toolkit {
 	};
 
 	TrMesh loadTrMeshFromFile(const std::string& pFile);
-	void genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &camera, float threshold);
+	void genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &camera, float threshold, int outlineMode);
 	void parseTrMesh(TrMesh &mesh, const  aiScene* aiscene);
 	void generateTrMeshNormals(TrMesh &mesh);
 	void pushTrMeshBuffers(TrMesh &mesh, GLint program);
