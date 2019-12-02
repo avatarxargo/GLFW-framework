@@ -39,7 +39,5 @@
 *.pdb
 *.iobj
 *.ipdb
-Debug/*
-Release/*
 *.log
 *.pdb
