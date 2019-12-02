@@ -24,7 +24,7 @@ void main(void)
    float animsquish = vecparam[2];
    float animwobble = vecparam[3];
    gl_Position = PVM*vec4(pos_attrib, 1.0);
-   pospos = gl_Position.xyz;
+ 	 pospos = (VM*vec4(pos_attrib,1)).xyz;
    normal = normal_attrib;
    camnormal = normalize(N*vec4(normal_attrib,0)).xyz;
    tex_coord = tex_coord_attrib;

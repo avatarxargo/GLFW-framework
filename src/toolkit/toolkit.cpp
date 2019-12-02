@@ -14,7 +14,7 @@ GLFWwindow* window;
 void(*ref_upd_function)(double);
 void(*ref_render_function)(void);
 
-void error_callback(int error, const char* description)
+void toolkit::error_callback(int error, const char* description)
 {
 	fprintf(stderr, "Error: %s\n", description);
 }

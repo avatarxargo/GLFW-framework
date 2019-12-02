@@ -19,11 +19,41 @@
     <Filter Include="src\toolkit\data">
       <UniqueIdentifier>{34573cf9-d2e7-41ae-980d-831720579ce8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\toolkit\stolen">
-      <UniqueIdentifier>{d0ccc08f-6c29-4242-9c26-73f2755713be}</UniqueIdentifier>
-    </Filter>
     <Filter Include="shaders">
       <UniqueIdentifier>{060a97dd-4e76-4d5b-a6e7-0d2465a2080d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika">
+      <UniqueIdentifier>{4f5a05be-a8e3-4cca-8bb3-c790e4db63e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika\core">
+      <UniqueIdentifier>{2fc77413-f4f2-4ea5-9110-12fd5b778d0b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika\display">
+      <UniqueIdentifier>{abd6e1e0-f684-449e-87c3-6ee4004446ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika\tmp">
+      <UniqueIdentifier>{590a5402-1f0f-4895-abc2-2006165792a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika\core\constants">
+      <UniqueIdentifier>{065b007b-0083-4019-bb61-2acf55b09bab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika\core\game">
+      <UniqueIdentifier>{0923d16f-4ce9-4f68-b0fe-e9fc0b1680f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika\display\UI">
+      <UniqueIdentifier>{afb3d229-c4f2-4881-8521-490d48b63838}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika\display\Shaders">
+      <UniqueIdentifier>{75bec95e-1a64-4ba0-a78c-0b56d04c3f70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika\display\ShaderComponents">
+      <UniqueIdentifier>{c08e892e-6bb1-4482-b5c6-8fd5a7e1709b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\rika\display\Characters">
+      <UniqueIdentifier>{25114b29-2434-4185-89cc-92b6d4b17626}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\toolkit\stolen AKA &quot;borrowed&quot;">
+      <UniqueIdentifier>{d0ccc08f-6c29-4242-9c26-73f2755713be}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -61,19 +91,85 @@
       <Filter>src\toolkit\data</Filter>
     </ClInclude>
     <ClInclude Include="src\toolkit\stolen\InitShader.h">
-      <Filter>src\toolkit\stolen</Filter>
+      <Filter>src\toolkit\stolen AKA "borrowed"</Filter>
     </ClInclude>
     <ClInclude Include="src\toolkit\stolen\LoadMesh.h">
-      <Filter>src\toolkit\stolen</Filter>
+      <Filter>src\toolkit\stolen AKA "borrowed"</Filter>
     </ClInclude>
     <ClInclude Include="src\toolkit\stolen\LoadTexture.h">
-      <Filter>src\toolkit\stolen</Filter>
+      <Filter>src\toolkit\stolen AKA "borrowed"</Filter>
     </ClInclude>
     <ClInclude Include="src\launcher\scene.h">
       <Filter>src\launcher</Filter>
     </ClInclude>
     <ClInclude Include="src\toolkit\data\Camera.h">
       <Filter>src\toolkit\data</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\core\Constants\Constants.h">
+      <Filter>src\toolkit\rika\core\constants</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\core\Game\RikaGameState.h">
+      <Filter>src\toolkit\rika\core\game</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\core\GameWindow.h">
+      <Filter>src\toolkit\rika\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\core\GameWindowInterface.h">
+      <Filter>src\toolkit\rika\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\core\InputHandler.h">
+      <Filter>src\toolkit\rika\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\core\RikaGame.h">
+      <Filter>src\toolkit\rika\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\core\RikaGameInterface.h">
+      <Filter>src\toolkit\rika\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\TextureImage.h">
+      <Filter>src\toolkit\rika\display</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\UI\UISprite.h">
+      <Filter>src\toolkit\rika\display\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\Shaders\BezierRenderer.h">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\Shaders\BoneRenderer.h">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\Shaders\CircleRenderer.h">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\Shaders\LineRenderer.h">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\Shaders\ShapeRenderer.h">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\Shaders\SimplePolyRenderer.h">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\Shaders\SpriteRenderer.h">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\ShaderComponents\ContainerEBO.h">
+      <Filter>src\toolkit\rika\display\ShaderComponents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\ShaderComponents\ContainerVBO.h">
+      <Filter>src\toolkit\rika\display\ShaderComponents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\ShaderComponents\ShaderCore.h">
+      <Filter>src\toolkit\rika\display\ShaderComponents</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\Characters\CharacterTools.h">
+      <Filter>src\toolkit\rika\display\Characters</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\Camera.h">
+      <Filter>src\toolkit\rika\display</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolkit\rika\display\FBOHandler.h">
+      <Filter>src\toolkit\rika\display</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -105,16 +201,70 @@
       <Filter>src\toolkit\data</Filter>
     </ClCompile>
     <ClCompile Include="src\toolkit\stolen\InitShader.cpp">
-      <Filter>src\toolkit\stolen</Filter>
+      <Filter>src\toolkit\stolen AKA "borrowed"</Filter>
     </ClCompile>
     <ClCompile Include="src\toolkit\stolen\LoadMesh.cpp">
-      <Filter>src\toolkit\stolen</Filter>
+      <Filter>src\toolkit\stolen AKA "borrowed"</Filter>
     </ClCompile>
     <ClCompile Include="src\toolkit\stolen\LoadTexture.cpp">
-      <Filter>src\toolkit\stolen</Filter>
+      <Filter>src\toolkit\stolen AKA "borrowed"</Filter>
     </ClCompile>
     <ClCompile Include="src\launcher\scene.cpp">
       <Filter>src\launcher</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\core\Game\RikaGameState.cpp">
+      <Filter>src\toolkit\rika\core\game</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\core\GameWindow.cpp">
+      <Filter>src\toolkit\rika\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\core\InputHandler.cpp">
+      <Filter>src\toolkit\rika\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\core\RikaGame.cpp">
+      <Filter>src\toolkit\rika\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\TextureImage.cpp">
+      <Filter>src\toolkit\rika\display</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\UI\UISprite.cpp">
+      <Filter>src\toolkit\rika\display\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\Shaders\BezierRenderer.cpp">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\Shaders\BoneRenderer.cpp">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\Shaders\CircleRenderer.cpp">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\Shaders\LineRenderer.cpp">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\Shaders\SimplePolyRenderer.cpp">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\Shaders\SpriteRenderer.cpp">
+      <Filter>src\toolkit\rika\display\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\ShaderComponents\ContainerEBO.cpp">
+      <Filter>src\toolkit\rika\display\ShaderComponents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\ShaderComponents\ContainerVBO.cpp">
+      <Filter>src\toolkit\rika\display\ShaderComponents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\ShaderComponents\ShaderCore.cpp">
+      <Filter>src\toolkit\rika\display\ShaderComponents</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\Characters\CharacterTools.cpp">
+      <Filter>src\toolkit\rika\display\Characters</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\Camera.cpp">
+      <Filter>src\toolkit\rika\display</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\rika\display\FBOHandler.cpp">
+      <Filter>src\toolkit\rika\display</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -26,6 +26,7 @@ namespace toolkit {
 		glm::mat4 PVM;
 		glm::mat4 P;
 		glm::mat4 V;
+		glm::mat4 M;
 		glm::mat4 N;
 	};
 

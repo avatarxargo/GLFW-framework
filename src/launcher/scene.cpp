@@ -22,6 +22,8 @@
 #include "../toolkit/data/Mesh.h"
 #include "../toolkit/data/Camera.h"
 
+#include "../toolkit/rika/display/FBOHandler.h"
+
 // =================== variables ==========================
 
 static const std::string mesh_vertex_shader("shaders/gui_demo_vs.glsl");
@@ -29,11 +31,15 @@ static const std::string mesh_fragment_shader("shaders/gui_demo_fs.glsl");
 static const std::string curve_vertex_shader("shaders/curve_vs.glsl");
 static const std::string curve_geometry_shader("shaders/curve_gm.glsl");
 static const std::string curve_fragment_shader("shaders/curve_fs.glsl");
-static std::vector <std::string> mesh_names = { "data/tstglobe.obj" };//  "data/akko.obj",
+static std::vector <std::string> mesh_names = { "data/akko.obj", "data/tstglobe.obj" };//   "","data/girl.obj",
 
 GLuint mesh_shader_program = -1;
 GLuint curve_shader_program = -1;
 GLuint texture_id = -1;
+
+// =================== shaders ==========================
+
+FBOHandler fbohandler;
 
 // =================== models ==========================
 
@@ -47,7 +53,7 @@ struct Settings {
 	bool paintTrMesh = false;
 	bool clear = true;
 	float threshold = 0.5;
-	int outlineMode = 0;
+	int outlineMode = 1;
 } settings;
 
 struct LightStats {
@@ -333,6 +339,7 @@ void createScene() {
 	meshes[0].meshpos[0] = 0.11f;
 	meshes[0].meshpos[1] = 0.85f;
 	registerCallbacks();
+	fbohandler.createVAO();
 	glfwMaximizeWindow(toolkit::getWindow());
 	const GLFWimage iconImage = LoadGLFWImage("data/images/icon32.png");
 	glfwSetWindowIcon(toolkit::getWindow(), 1, &iconImage);
@@ -390,7 +397,7 @@ void drawMesh(MeshStats &mesh) {
 		return;
 	applyMaterialParams(mesh_shader_program, mesh);
 	glm::mat4 T = glm::translate(glm::vec3(mesh.meshpos[0], mesh.meshpos[1], mesh.meshpos[2]));
-	glm::mat4 M = T * glm::rotate(mesh.angle*3.14159f/180.0f, glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(mesh.scale[0] * mesh.trMesh.scale, mesh.scale[1] * mesh.trMesh.scale, mesh.scale[2] * mesh.trMesh.scale));
+	cameraStats.M = T * glm::rotate(mesh.angle*3.14159f/180.0f, glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(mesh.scale[0] * mesh.trMesh.scale, mesh.scale[1] * mesh.trMesh.scale, mesh.scale[2] * mesh.trMesh.scale));
 
 	glm::vec3 eye = glm::vec3(glm::cos(cameraStats.campitch)*glm::sin(cameraStats.camangle)*cameraStats.camdst, glm::sin(cameraStats.campitch)*cameraStats.camdst, glm::cos(cameraStats.campitch)*glm::cos(cameraStats.camangle)*cameraStats.camdst) + glm::vec3(cameraStats.campos[0], cameraStats.campos[1], cameraStats.campos[2]);
 	glm::vec3 tgt = glm::vec3(0.0f, 0.0f, 0.0f) + glm::vec3(cameraStats.campos[0], cameraStats.campos[1], cameraStats.campos[2]);
@@ -406,7 +413,7 @@ void drawMesh(MeshStats &mesh) {
 	int PVM_loc = glGetUniformLocation(mesh_shader_program, "PVM");
 	if (PVM_loc != -1)
 	{
-		cameraStats.PVM = cameraStats.P * cameraStats.V * M;
+		cameraStats.PVM = cameraStats.P * cameraStats.V * cameraStats.M;
 		glUniformMatrix4fv(PVM_loc, 1, false, glm::value_ptr(cameraStats.PVM));
 	}
 
@@ -419,7 +426,7 @@ void drawMesh(MeshStats &mesh) {
 	int VM_loc = glGetUniformLocation(mesh_shader_program, "VM");
 	if (VM_loc != -1)
 	{
-		glm::mat4 VM = cameraStats.V * M;
+		glm::mat4 VM = cameraStats.V * cameraStats.M;
 		glUniformMatrix4fv(VM_loc, 1, false, glm::value_ptr(VM));
 	}
 
@@ -433,8 +440,12 @@ void drawMesh(MeshStats &mesh) {
 	int N_loc = glGetUniformLocation(mesh_shader_program, "N");
 	if (N_loc != -1)
 	{
-		cameraStats.N = glm::inverseTranspose(cameraStats.V*M);
-		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(cameraStats.N));
+		cameraStats.N = glm::inverseTranspose(cameraStats.V*cameraStats.M);
+		/*std::cout << cameraStats.N[0][0] << "," << cameraStats.N[0][1] << "," << cameraStats.N[0][2] << "," << cameraStats.N[0][3] << "\n";
+		std::cout << cameraStats.N[1][0] << "," << cameraStats.N[1][1] << "," << cameraStats.N[1][2] << "," << cameraStats.N[1][3] << "\n";
+		std::cout << cameraStats.N[2][0] << "," << cameraStats.N[2][1] << "," << cameraStats.N[2][2] << "," << cameraStats.N[2][3] << "\n";
+		std::cout << cameraStats.N[3][0] << "," << cameraStats.N[3][1] << "," << cameraStats.N[3][2] << "," << cameraStats.N[3][3] << "]\n";
+		*/glUniformMatrix4fv(N_loc, 1, false, glm::value_ptr(cameraStats.N));
 	}
 
 	int tex_loc = glGetUniformLocation(mesh_shader_program, "diffuse_tex");
@@ -503,7 +514,7 @@ void drawMeshOutlines(MeshStats &mesh) {
 	if (N_loc != -1)
 	{
 		cameraStats.N = glm::inverseTranspose(cameraStats.V*M);
-		glUniformMatrix3fv(N_loc, 1, false, glm::value_ptr(cameraStats.N));
+		glUniformMatrix4fv(N_loc, 1, false, glm::value_ptr(cameraStats.N));
 	}
 
 	int tex_loc = glGetUniformLocation(mesh_shader_program, "diffuse_tex");
@@ -636,6 +647,10 @@ void renderScene() {
 	if(settings.clear)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	if (lights.size() > 0) {
+		applyLightParams(mesh_shader_program, lights[0]);
+		applyLightParams(curve_shader_program, lights[0]);
+	}
 	if(settings.paintSurfaces)
 		for (auto mesh : meshes) {
 			drawMesh(mesh);

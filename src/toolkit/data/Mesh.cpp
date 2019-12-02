@@ -55,21 +55,72 @@ toolkit::TrMesh toolkit::loadTrMeshFromFile(const std::string& path) {
 
 void toolkit::genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &camera, float threshold, int outlineMode) {
 	trmesh.outline.clear();
+	//evaluate the faces:
+	for (int f = 0; f < trmesh.face_info.size(); ++f) {
+		TrFaceInfo *face = &trmesh.face_info[f];
+		//glm::vec4 projn = camera.N*glm::vec4(face->normal, 0);
+		//face->rating = projn.z;
+		glm::vec3 cam = { 0,0,0 };
+
+		glm::vec3 pA = trmesh.verteces[trmesh.faces[f].a].pos;
+		glm::vec3 pB = trmesh.verteces[trmesh.faces[f].b].pos;
+		glm::vec3 pC = trmesh.verteces[trmesh.faces[f].c].pos;
+		glm::vec4 ppA = camera.V* camera.M * glm::vec4(pA, 1);
+		glm::vec4 ppB = camera.V*camera.M * glm::vec4(pB, 1);
+		glm::vec4 ppC = camera.V*camera.M * glm::vec4(pC, 1);
+
+		glm::vec4 v0 = ppA - ppC;
+		glm::vec4 v1 = ppB - ppC;
+		face->castnormal = glm::normalize(glm::cross(glm::vec3(v0.x, v0.y, v0.z), glm::vec3(v1.x, v1.y, v1.z)));
+		
+
+		glm::vec4 projn = glm::normalize(camera.N*glm::vec4(face->normal, 0));
+		face->castnormal = projn;
+
+		face->rating = face->castnormal.z;
+		/*face->rating = 0;
+		face->rating += (ppA.x * ppB.y - ppB.x * ppA.y);
+		face->rating += (ppB.x * ppC.y - ppC.x * ppB.y);
+		face->rating += (ppC.x * ppA.y - ppA.x * ppC.y);*/
+	}
+
 	for (int i = 0; i < trmesh.edges.size(); ++i) {
 		TrEdge *edge = &trmesh.edges[i];
-		if (!edge->manifold)
-			continue;
 		bool highlight = false;
+		//if (!edge->manifold)
+		//	highlight = true;
 		// evaluate:
-		TrFaceInfo* faceinfoA = &trmesh.face_info[edge->faces[0]];
-		TrFaceInfo* faceinfoB = &trmesh.face_info[edge->faces[1]];
-		if (outlineMode == 0) {
-			float d = dot(faceinfoA->normal, faceinfoB->normal);
-			if (d < threshold)
-				highlight = true;
-		}
-		else if (outlineMode == 1) {
-			
+		if (edge->faces.size() > 1) {
+			TrFaceInfo* faceinfoA = &trmesh.face_info[edge->faces[0]];
+			TrFaceInfo* faceinfoB = &trmesh.face_info[edge->faces[1]];
+			if (outlineMode == 0) {
+				float d = dot(faceinfoA->normal, faceinfoB->normal);
+				if (d < threshold)
+					highlight = true;
+			}
+			else if (outlineMode == 1) {
+				highlight = (faceinfoA->rating>0 && faceinfoB->rating <=0) || (faceinfoA->rating <= 0 && faceinfoB->rating>0);
+				/*if (faceinfoA->rating > -threshold && faceinfoB->rating < threshold)
+					highlight = true;
+				if (faceinfoB->rating > -threshold && faceinfoA->rating < threshold)
+					highlight = true;*/
+
+				//some weird, kinda working implementation:
+				/*glm::vec4 nAv = glm::normalize(camera.N*glm::vec4(faceinfoA->normal, 0));
+				glm::vec4 nBv = glm::normalize(camera.N*glm::vec4(faceinfoB->normal, 0));
+				float d = glm::min(dot(nAv, glm::vec4(0,0,1,0)), dot(nBv, glm::vec4(0, 0, 1, 0)));
+				if (d < threshold)
+					highlight = true;*/
+
+			}
+		} else if (edge->faces.size() == 1) {
+			if (outlineMode == 1) {
+				TrFaceInfo* faceinfoA = &trmesh.face_info[edge->faces[0]];
+				if (glm::abs(glm::dot(faceinfoA->castnormal, glm::vec3(0, 0, 1))) < 0.1) {
+					highlight = true;
+					//std::cout << faceinfoA->castnormal.x << "," << faceinfoA->castnormal.y << "," << faceinfoA->castnormal.z << "\n";
+				}
+			}
 		}
 		// add:
 		if (highlight) {

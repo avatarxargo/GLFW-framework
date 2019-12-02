@@ -39,6 +39,7 @@ namespace toolkit {
 
 	GLFWwindow* const getWindow();
 
+	void error_callback(int error, const char* description);
 }
 
 #endif

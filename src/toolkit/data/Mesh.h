@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <GL/glew.h>
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 
@@ -39,8 +40,9 @@ namespace toolkit {
 		GLuint a, b, c;
 	};
 	struct TrFaceInfo {
-		bool rating; //whether the face faces camera, for toon shading
+		float rating; //whether the face faces camera, for toon shading
 		glm::vec3 normal;
+		glm::vec3 castnormal;
 	};
 
 	struct TrEdge {
