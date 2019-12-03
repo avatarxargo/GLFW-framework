@@ -70,9 +70,10 @@ void main(void) {
   	// ================ RENDER ===================
 
   	vec4 tex_color = texture(diffuse_tex, tex_coord);
+    vec4 shadow_color;
   	//if(!mtextured) {
-  		tex_color = vec4(normalize(camnormal)*0.5+0.5,1.0);
-    	tex_color = vec4(1.0);
+  		shadow_color = vec4(normalize(camnormal)*0.5+0.5,1.0);
+    	shadow_color = vec4(1.0);
 
       float alt = 1-abs(shadediff);
       float nor = abs(shadediff);
@@ -82,9 +83,13 @@ void main(void) {
         blend = ratio;
       }
       if(shaded) {
-        tex_color = vec4(0.3+nor*0.2,0.2+nor*0.3,0.2+0.4*nor,1);
+        shadow_color = vec4(0.3+nor*0.2,0.2+nor*0.3,0.2+0.4*nor,1);
       } else {
-        tex_color = vec4(vec3(0.4*blend+0.6),1);
+        shadow_color = vec4(vec3(0.4*blend+0.6),1);
+      }
+
+      if(!mtextured) {
+        shadow_color = vec4(1.0);
       }
   //	}
   	vec3 pt_amb = mamb*lamb;
@@ -93,7 +98,7 @@ void main(void) {
 
   	float qAttenuation = 1+lfalloff.x+lfalloff.y*ldist+lfalloff.z*ldist*ldist;
   	vec3 amb_component = pt_amb*tex_color.xyz;
-  	vec3 diff_component = tex_color.xyz;
+  	vec3 diff_component = shadow_color.xyz*tex_color.xyz;
   	vec3 spec_component = pt_spec;
   	vec3 I =  min(amb_component+diff_component+spec_component,1.0);
   	fragcolor = vec4(I,tex_color.a);

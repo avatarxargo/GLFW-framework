@@ -31,7 +31,7 @@ static const std::string mesh_fragment_shader("shaders/gui_demo_fs.glsl");
 static const std::string curve_vertex_shader("shaders/curve_vs.glsl");
 static const std::string curve_geometry_shader("shaders/curve_gm.glsl");
 static const std::string curve_fragment_shader("shaders/curve_fs.glsl");
-static std::vector <std::string> mesh_names = { "data/akko.obj", "data/tstglobe.obj" };//   "","data/girl.obj",
+static std::vector <std::string> mesh_names = { "data/doremy.obj", "data/tstglobe.obj" };//   ""data/akko.obj"","data/girl.obj",
 
 GLuint mesh_shader_program = -1;
 GLuint curve_shader_program = -1;
@@ -336,6 +336,7 @@ void createScene() {
 	for (auto mesh_name : mesh_names) {
 		addMesh(mesh_name);
 	}
+	texture_id = LoadTexture("data/DoremyTexture.png");
 	meshes[0].meshpos[0] = 0.11f;
 	meshes[0].meshpos[1] = 0.85f;
 	registerCallbacks();

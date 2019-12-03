@@ -120,6 +120,7 @@ void toolkit::genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &came
 					highlight = true;
 					//std::cout << faceinfoA->castnormal.x << "," << faceinfoA->castnormal.y << "," << faceinfoA->castnormal.z << "\n";
 				}
+				highlight = false;
 			}
 		}
 		// add:
