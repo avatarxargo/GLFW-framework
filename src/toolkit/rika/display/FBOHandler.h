@@ -45,13 +45,14 @@ private:
 	GLuint fbo; //fbo
 	GLuint fborb; //render buffer
 public:
-	GLuint fbotex1, fbotex2, fbotex3; //attachment0
+	GLuint fbotex1, fbotex2, fbotex3, fbodepthtex; //attachment0
+	void setDimensions(int w, int h);
 	bool init();
 	bool createVAO();
 	void bind();
 	void unbind();
 	void clear();
-	void drawPass2(glm::vec2 screensize);
+	void drawPass2(glm::vec2 screensize, float* clearcol);
 	//
 	FBOHandler();
 	~FBOHandler();

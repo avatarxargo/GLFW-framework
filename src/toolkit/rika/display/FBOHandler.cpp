@@ -37,6 +37,12 @@ bool FBOHandler::createVAO() {
 	return false;
 }
 
+
+void FBOHandler::setDimensions(int w, int h) {
+	fbo_texture_width = w;
+	fbo_texture_height = h;
+}
+
 bool FBOHandler::init() {
 
 	//build program
@@ -50,7 +56,7 @@ bool FBOHandler::init() {
 	// Create the screen texture
 	glGenTextures(1, &fbotex1);
 	glBindTexture(GL_TEXTURE_2D, fbotex1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fbo_texture_width, fbo_texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fbo_texture_width, fbo_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -58,7 +64,7 @@ bool FBOHandler::init() {
 	// Create the screen texture
 	glGenTextures(1, &fbotex2);
 	glBindTexture(GL_TEXTURE_2D, fbotex2);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fbo_texture_width, fbo_texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fbo_texture_width, fbo_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -67,12 +73,21 @@ bool FBOHandler::init() {
 	// Create the screen texture
 	glGenTextures(1, &fbotex3);
 	glBindTexture(GL_TEXTURE_2D, fbotex3);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fbo_texture_width, fbo_texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fbo_texture_width, fbo_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	// Create the depth texture
+	/*glGenTextures(1, &fbodepthtex);
+	glBindTexture(GL_TEXTURE_2D, fbodepthtex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, fbo_texture_width, fbo_texture_height, 0, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);*/
 
 	// Create the framebuffer object
 	glGenFramebuffers(1, &fbo);
@@ -81,12 +96,13 @@ bool FBOHandler::init() {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbotex1, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, fbotex2, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, fbotex3, 0);
+	//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, fbodepthtex, 0);
 
 	glGenRenderbuffers(1, &fborb);
 	glBindRenderbuffer(GL_RENDERBUFFER, fborb);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, fbo_texture_width, fbo_texture_height);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, fborb);
-
+	
 	//unbind the fbo
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -125,12 +141,12 @@ void FBOHandler::clear() {
 	glClearTexImage(fbotex3, 0, GL_RGBA, GL_UNSIGNED_BYTE, &emptyData[0]);
 }
 
-void FBOHandler::drawPass2(glm::vec2 screensize) {
+void FBOHandler::drawPass2(glm::vec2 screensize, float* clearcol) {
 	bindProgram();
 	glBindVertexArray(vao);
 	bindProgram();
 	glUniform2fv(universalShaUni::screensize, 1, &screensize[0]);
-	glDisable(GL_BLEND);
+	//glDisable(GL_BLEND);
 	glDisable(GL_DEPTH);
 	//
 	glActiveTexture(GL_TEXTURE0);
@@ -139,6 +155,7 @@ void FBOHandler::drawPass2(glm::vec2 screensize) {
 	glBindTexture(GL_TEXTURE_2D, fbotex2);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, fbotex3);
+	glUniform4fv(5, 1, clearcol);
 	//
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	//

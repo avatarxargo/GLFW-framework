@@ -55,6 +55,9 @@
     <Filter Include="src\toolkit\stolen AKA &quot;borrowed&quot;">
       <UniqueIdentifier>{d0ccc08f-6c29-4242-9c26-73f2755713be}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\toolkit\util">
+      <UniqueIdentifier>{d89fdff8-0004-4fc0-912c-b3a8413d4d3f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\toolkit\toolkit.h">
@@ -171,6 +174,9 @@
     <ClInclude Include="src\toolkit\rika\display\FBOHandler.h">
       <Filter>src\toolkit\rika\display</Filter>
     </ClInclude>
+    <ClInclude Include="src\toolkit\util\computeShader.h">
+      <Filter>src\toolkit\util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\toolkit\toolkit.cpp">
@@ -265,6 +271,9 @@
     </ClCompile>
     <ClCompile Include="src\toolkit\rika\display\FBOHandler.cpp">
       <Filter>src\toolkit\rika\display</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolkit\util\computeShader.cpp">
+      <Filter>src\toolkit\util</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

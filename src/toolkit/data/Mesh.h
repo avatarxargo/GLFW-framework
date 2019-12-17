@@ -18,12 +18,15 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #include "assimp/Scene.h"
 #include "assimp/Importer.hpp"
 #include "assimp/PostProcess.h"
 
 #include "Camera.h"
+#include "../util/computeShader.h"
 
 namespace toolkit {
 
@@ -40,9 +43,12 @@ namespace toolkit {
 		GLuint a, b, c;
 	};
 	struct TrFaceInfo {
-		float rating; //whether the face faces camera, for toon shading
-		glm::vec3 normal;
-		glm::vec3 castnormal;
+		glm::vec4 normal = { 0,0,0,0 };
+		glm::vec4 castnormal = {0,0,0,0};
+		float rating = 0; //whether the face faces camera, for toon shading
+		float pad1 = 0;
+		float pad2 = 0;
+		float pad3 = 0;
 	};
 
 	struct TrEdge {
@@ -69,7 +75,7 @@ namespace toolkit {
 	};
 
 	TrMesh loadTrMeshFromFile(const std::string& pFile);
-	void genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &camera, float threshold, int outlineMode);
+	void genTrMeshGenLineart(toolkit::ComputeShader* shader, toolkit::TrMesh &trmesh, toolkit::Camera &camera, float threshold, int outlineMode);
 	void parseTrMesh(TrMesh &mesh, const  aiScene* aiscene);
 	void generateTrMeshNormals(TrMesh &mesh);
 	void pushTrMeshBuffers(TrMesh &mesh, GLint program);

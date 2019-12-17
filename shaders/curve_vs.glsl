@@ -23,7 +23,7 @@ void main(void)
    float animspeed = vecparam[1];
    float animsquish = vecparam[2];
    float animwobble = vecparam[3];
-   gl_Position = PVM*vec4(pos_attrib, 1.0);
+   gl_Position = VM*vec4(pos_attrib, 1.0);
    position = gl_Position.xyz;
    pospos = gl_Position.xyz;
    normal = normal_attrib;

@@ -30,6 +30,8 @@ namespace universalShaUni {
 	const int screensize = 1;
 }
 
+bool loadShader(GLuint type, const char* path, GLuint* shaderTgt);
+
 class ShaderCore {
 private:
 	char* pathVertShader;

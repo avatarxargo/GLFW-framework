@@ -6,6 +6,8 @@ uniform float time;
 uniform mat4 VM;
 
 out vec4 fragcolor;
+out vec4 lineColor;
+out vec4 normalColor;
 
 // light (view space)
 uniform vec3 lpos; //in camera coordinates
@@ -102,4 +104,6 @@ void main(void) {
   	vec3 spec_component = pt_spec;
   	vec3 I =  min(amb_component+diff_component+spec_component,1.0);
   	fragcolor = vec4(I,tex_color.a);
+    lineColor = vec4(0,0,0,0);
+    normalColor = vec4(camnormal,1);
  }

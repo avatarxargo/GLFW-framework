@@ -7,11 +7,23 @@ layout(location=0) in vec2 v_uv;
 layout(location=2) uniform sampler2D fbotex1;
 layout(location=3) uniform sampler2D fbotex2;
 layout(location=4) uniform sampler2D fbotex3;
+layout(location=5) uniform vec4 bgcol;
 
 out vec4 fragColor;
 
 void main() {
-	fragColor = vec4(texture(fbotex1, v_uv).xyz, 0) + texture(fbotex2, v_uv);
+	bool line = texture(fbotex2, v_uv).a > 0;
+	vec3 col = texture(fbotex1, v_uv).rgb;
+	if(line)
+		col = texture(fbotex2, v_uv).rgb;
+	//col += texture(fbotex3, v_uv).rgb;
+	float visible = texture(fbotex1, v_uv).a;
+	visible += texture(fbotex2, v_uv).a;
+	//visible += texture(fbotex3, v_uv).a;
+	visible = min(1,max(0,visible));
+	fragColor = vec4(col*visible+bgcol.rgb*(1-visible), 1); //
+	//fragColor = vec4(texture(fbotex1, v_uv).a,texture(2, v_uv).a,texture(fbotex3, v_uv).a,1);//vec4(bgcol.rgb*(1-visible),1); //
+	return;
 	//lineart
 	float thickness = 2;
 	float stepX = thickness/1280.0;

@@ -166,6 +166,7 @@
     <ClInclude Include="src\toolkit\stolen\LoadMesh.h" />
     <ClInclude Include="src\toolkit\stolen\LoadTexture.h" />
     <ClInclude Include="src\toolkit\toolkit.h" />
+    <ClInclude Include="src\toolkit\util\computeShader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\launcher\main.cpp" />
@@ -199,6 +200,7 @@
     <ClCompile Include="src\toolkit\stolen\LoadMesh.cpp" />
     <ClCompile Include="src\toolkit\stolen\LoadTexture.cpp" />
     <ClCompile Include="src\toolkit\toolkit.cpp" />
+    <ClCompile Include="src\toolkit\util\computeShader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\bezier_fs.glsl" />

@@ -168,7 +168,7 @@ void GameWindow::render1st(double updRatio) {
 void GameWindow::render2nd(double updRatio) {
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
-	shaderContainer.fboHandler->drawPass2(glm::vec2(width,height));
+	shaderContainer.fboHandler->drawPass2(glm::vec2(width,height),0);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 

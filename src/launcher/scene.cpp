@@ -23,6 +23,7 @@
 #include "../toolkit/data/Camera.h"
 
 #include "../toolkit/rika/display/FBOHandler.h"
+#include "../toolkit/util/computeShader.h"
 
 // =================== variables ==========================
 
@@ -31,15 +32,18 @@ static const std::string mesh_fragment_shader("shaders/gui_demo_fs.glsl");
 static const std::string curve_vertex_shader("shaders/curve_vs.glsl");
 static const std::string curve_geometry_shader("shaders/curve_gm.glsl");
 static const std::string curve_fragment_shader("shaders/curve_fs.glsl");
-static std::vector <std::string> mesh_names = { "data/doremy.obj", "data/tstglobe.obj" };//   ""data/akko.obj"","data/girl.obj",
+static const std::string compute_shader_path("shaders/compute_outline.glsl");
+static std::vector <std::string> mesh_names = { "data/doremy.obj", "data/tstglobe.obj",  };//   ""data/akko.obj"","data/girl.obj",
 
 GLuint mesh_shader_program = -1;
 GLuint curve_shader_program = -1;
 GLuint texture_id = -1;
+GLuint stroke_texture_id = -1;
 
 // =================== shaders ==========================
 
 FBOHandler fbohandler;
+toolkit::ComputeShader computeShader;
 
 // =================== models ==========================
 
@@ -147,7 +151,7 @@ void reload_shader()
 		mesh_shader_program = new_shader;
 	}
 
-	new_shader = InitShader(curve_vertex_shader.c_str(), curve_fragment_shader.c_str());
+	new_shader = InitShader(curve_vertex_shader.c_str(), curve_geometry_shader.c_str(), curve_fragment_shader.c_str());
 	//curve
 	if (new_shader == -1) // loading failed
 	{
@@ -337,11 +341,16 @@ void createScene() {
 		addMesh(mesh_name);
 	}
 	texture_id = LoadTexture("data/DoremyTexture.png");
+	stroke_texture_id = LoadTexture("data/StrokeTexture.png");
 	meshes[0].meshpos[0] = 0.11f;
 	meshes[0].meshpos[1] = 0.85f;
 	registerCallbacks();
-	fbohandler.createVAO();
 	glfwMaximizeWindow(toolkit::getWindow());
+	int w, h;
+	glfwGetWindowSize(toolkit::getWindow(), &w, &h);
+	fbohandler.setDimensions(w,h);
+	fbohandler.init();
+	computeShader = toolkit::createComputeShader(compute_shader_path);
 	const GLFWimage iconImage = LoadGLFWImage("data/images/icon32.png");
 	glfwSetWindowIcon(toolkit::getWindow(), 1, &iconImage);
 	glfwSetWindowTitle(toolkit::getWindow(), "Advanced Anime Shader");
@@ -456,9 +465,14 @@ void drawMesh(MeshStats &mesh) {
 	}
 
 	//if (settings.paintTrMesh) {
+
+	if (settings.paintSurfaces) {
 		glBindVertexArray(mesh.trMesh.vao);
-		glDrawElements(GL_TRIANGLES, mesh.trMesh.elementCount*3, GL_UNSIGNED_INT, 0);
-	/*}
+	//glDisable(GL_CULL_FACE);
+	//glDisable(GL_DEPTH_TEST);
+		glDrawElements(GL_TRIANGLES, mesh.trMesh.elementCount * 3, GL_UNSIGNED_INT, 0);
+	}
+		/*}
 	else {
 		glBindVertexArray(mesh.meshData.mVao);
 		glDrawElements(GL_TRIANGLES, mesh.meshData.mSubmesh[0].mNumIndices, GL_UNSIGNED_INT, 0);
@@ -484,6 +498,8 @@ void drawMeshOutlines(MeshStats &mesh) {
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture_id);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, stroke_texture_id);
 	int PVM_loc = glGetUniformLocation(curve_shader_program, "PVM");
 	if (PVM_loc != -1)
 	{
@@ -518,10 +534,20 @@ void drawMeshOutlines(MeshStats &mesh) {
 		glUniformMatrix4fv(N_loc, 1, false, glm::value_ptr(cameraStats.N));
 	}
 
-	int tex_loc = glGetUniformLocation(mesh_shader_program, "diffuse_tex");
+	int tex_loc = glGetUniformLocation(curve_shader_program, "diffuse_tex");
 	if (tex_loc != -1)
 	{
 		glUniform1i(tex_loc, 0); // we bound our texture to texture unit 0
+	}
+	int tex_loc2 = glGetUniformLocation(curve_shader_program, "stroke_diffuse_tex");
+	if (tex_loc2 != -1)
+	{
+		glUniform1i(tex_loc2, 1); // we bound our texture to texture unit 0
+	}
+	int screensizeloc = glGetUniformLocation(curve_shader_program, "screensize");
+	if (screensizeloc != -1)
+	{
+		glUniform2f(screensizeloc, width, height); // we bound our texture to texture unit 0
 	}
 
 	glBindVertexArray(mesh.trMesh.vao);
@@ -570,6 +596,19 @@ void draw_gui()
 		if (ImGui::Button("Reload Shaders")) {
 			reload_shader();
 		}
+	}
+	ImGui::End();
+
+	// FBO textures
+	ImGui::Begin("FBO Textures");
+	{
+		int w, h;
+		glfwGetWindowSize(toolkit::getWindow(),&w,&h);
+		int texsizey = 215;
+		int texsizex = 215*((float)w/h);
+		ImGui::Image((void*)(intptr_t)fbohandler.fbotex1, ImVec2(texsizex, texsizey), ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::Image((void*)(intptr_t)fbohandler.fbotex2, ImVec2(texsizex, texsizey), ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::Image((void*)(intptr_t)fbohandler.fbotex3, ImVec2(texsizex, texsizey), ImVec2(0, 1), ImVec2(1, 0));
 	}
 	ImGui::End();
 
@@ -645,23 +684,36 @@ void renderScene() {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	if(settings.clear)
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	fbohandler.bind();
+	glClear(GL_DEPTH_BUFFER_BIT);
+	float cldpth[4] = { 0,0,0,0 };
+	int cld[1] = { 0 };
+	glClearBufferfv(GL_COLOR, 0, &cldpth[0]);
+	glClearBufferfv(GL_COLOR, 1, &cldpth[0]);
+	glClearBufferfv(GL_COLOR, 2, &cldpth[0]);
+	//glClearBufferiv(GL_DEPTH, 0, &cld[0]);
+	//glClearBufferfv(GL_DEPTH_COMPONENT24, 3, &cldpth[0]);
 
 	if (lights.size() > 0) {
 		applyLightParams(mesh_shader_program, lights[0]);
 		applyLightParams(curve_shader_program, lights[0]);
+	};
+	for (auto mesh : meshes) {
+		drawMesh(mesh);
 	}
-	if(settings.paintSurfaces)
-		for (auto mesh : meshes) {
-			drawMesh(mesh);
-		}
+	int width, height;
+	glfwGetWindowSize(toolkit::getWindow(), &width, &height);
+
 	if (settings.paintLineart)
 		for (auto mesh : meshes) {
-			toolkit::genTrMeshGenLineart(mesh.trMesh, cameraStats, settings.threshold, settings.outlineMode);
+			toolkit::genTrMeshGenLineart(&computeShader, mesh.trMesh, cameraStats, settings.threshold, settings.outlineMode);
 			drawMeshOutlines(mesh);
 		}
 
+	fbohandler.unbind();
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	fbohandler.drawPass2(glm::vec2(width, height),ccol);
 	draw_gui();
 
 	// Render ImGui

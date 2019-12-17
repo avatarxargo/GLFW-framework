@@ -53,10 +53,62 @@ toolkit::TrMesh toolkit::loadTrMeshFromFile(const std::string& path) {
 	return mesh;
 }
 
-void toolkit::genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &camera, float threshold, int outlineMode) {
+int initial = 0;
+
+void toolkit::genTrMeshGenLineart(toolkit::ComputeShader* shader, toolkit::TrMesh &trmesh, toolkit::Camera &camera, float threshold, int outlineMode) {
+	//clear old data:
 	trmesh.outline.clear();
-	//evaluate the faces:
-	for (int f = 0; f < trmesh.face_info.size(); ++f) {
+	//execute shader:
+	glUseProgram(shader->programID);
+	shader->x = trmesh.face_info.size();
+	// pass data:
+	size_t buffersize = sizeof(TrFaceInfo)*trmesh.face_info.size();
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, shader->inBufferA);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, buffersize, &trmesh.face_info[0], GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shader->inBufferA);
+	if(initial == 10)
+	for (int f = 0; f < trmesh.face_info.size() && f < 5; ++f) {
+		std::cout << f << ":pre rating:" << trmesh.face_info[f].rating << "\n";
+		std::cout << f << ":pre normal:" << trmesh.face_info[f].normal.x << "," << trmesh.face_info[f].normal.y << "," << trmesh.face_info[f].normal.z << "\n";
+		std::cout << f << ":pre cast:" << trmesh.face_info[f].castnormal.x << "," << trmesh.face_info[f].castnormal.y << "," << trmesh.face_info[f].castnormal.z << "\n";
+	}
+	//uniforms
+	
+	int count_loc = glGetUniformLocation(shader->programID, "count");
+	if (count_loc != -1)
+		glUniform1i(count_loc, trmesh.face_info.size());
+
+	int gcount_loc = glGetUniformLocation(shader->programID, "groupcount");
+	if (gcount_loc != -1)
+		glUniform2f(gcount_loc, 16, 16);
+
+	int N_loc = glGetUniformLocation(shader->programID, "N");
+	if (N_loc != -1)
+	{
+		camera.N = glm::inverseTranspose(camera.V*camera.M);
+		glUniformMatrix4fv(N_loc, 1, false, glm::value_ptr(camera.N[0]));
+	}
+
+	toolkit::dispatchComputeShader(shader);
+	// read it:
+	//toolkit::TrFaceInfo meshinforead[6];
+	GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	//memcpy(&meshinforead[0], p, sizeof(TrFaceInfo)*5);
+	memcpy(trmesh.face_info.data(), p, buffersize);
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glUseProgram(0);
+
+	if (initial++ >= 10 && false) {
+		std::cout << "\n";
+		for (int f = 0; f < trmesh.face_info.size() && f < 5; ++f) {
+			std::cout << f << ":post rating:" << trmesh.face_info[f].rating << "\n";
+			std::cout << f << ":post normal:" << trmesh.face_info[f].normal.x << "," << trmesh.face_info[f].normal.y << "," << trmesh.face_info[f].normal.z << "\n";
+			std::cout << f << ":post cast:" << trmesh.face_info[f].castnormal.x << "," << trmesh.face_info[f].castnormal.y << "," << trmesh.face_info[f].castnormal.z << "\n";
+		}
+	}
+	//evaluate the faces (LEGACY CPU):
+	/*for (int f = 0; f < trmesh.face_info.size(); ++f) {
 		TrFaceInfo *face = &trmesh.face_info[f];
 		//glm::vec4 projn = camera.N*glm::vec4(face->normal, 0);
 		//face->rating = projn.z;
@@ -65,24 +117,28 @@ void toolkit::genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &came
 		glm::vec3 pA = trmesh.verteces[trmesh.faces[f].a].pos;
 		glm::vec3 pB = trmesh.verteces[trmesh.faces[f].b].pos;
 		glm::vec3 pC = trmesh.verteces[trmesh.faces[f].c].pos;
-		glm::vec4 ppA = camera.V* camera.M * glm::vec4(pA, 1);
-		glm::vec4 ppB = camera.V*camera.M * glm::vec4(pB, 1);
-		glm::vec4 ppC = camera.V*camera.M * glm::vec4(pC, 1);
+		glm::vec4 ppA = camera.P*camera.V* camera.M * glm::vec4(pA, 1);
+		glm::vec4 ppB = camera.P*camera.V*camera.M * glm::vec4(pB, 1);
+		glm::vec4 ppC = camera.P*camera.V*camera.M * glm::vec4(pC, 1);
 
 		glm::vec4 v0 = ppA - ppC;
 		glm::vec4 v1 = ppB - ppC;
-		face->castnormal = glm::normalize(glm::cross(glm::vec3(v0.x, v0.y, v0.z), glm::vec3(v1.x, v1.y, v1.z)));
+		//face->castnormal = glm::normalize(glm::cross(glm::vec3(v0.x, v0.y, v0.z), glm::vec3(v1.x, v1.y, v1.z)));
 		
+		if (initial++ >= 10 && f < 2)
+		std::cout << f << ": GPU cast:" << trmesh.face_info[f].castnormal.x << "," << trmesh.face_info[f].castnormal.y << "," << trmesh.face_info[f].castnormal.z << "\n";
 
-		glm::vec4 projn = glm::normalize(camera.N*glm::vec4(face->normal, 0));
+		glm::vec4 projn = glm::normalize(camera.N*face->normal);
 		face->castnormal = projn;
+		if (initial++ >= 10 && f < 2)
+		std::cout << f <<  ": CPU cast:" << trmesh.face_info[f].castnormal.x << "," << trmesh.face_info[f].castnormal.y << "," << trmesh.face_info[f].castnormal.z << "\n";
 
 		face->rating = face->castnormal.z;
-		/*face->rating = 0;
-		face->rating += (ppA.x * ppB.y - ppB.x * ppA.y);
-		face->rating += (ppB.x * ppC.y - ppC.x * ppB.y);
-		face->rating += (ppC.x * ppA.y - ppA.x * ppC.y);*/
-	}
+	}*/
+	/*face->rating = 0;
+	face->rating += (ppA.x * ppB.y - ppB.x * ppA.y);
+	face->rating += (ppB.x * ppC.y - ppC.x * ppB.y);
+	face->rating += (ppC.x * ppA.y - ppA.x * ppC.y);*/
 
 	for (int i = 0; i < trmesh.edges.size(); ++i) {
 		TrEdge *edge = &trmesh.edges[i];
@@ -116,7 +172,7 @@ void toolkit::genTrMeshGenLineart(toolkit::TrMesh &trmesh, toolkit::Camera &came
 		} else if (edge->faces.size() == 1) {
 			if (outlineMode == 1) {
 				TrFaceInfo* faceinfoA = &trmesh.face_info[edge->faces[0]];
-				if (glm::abs(glm::dot(faceinfoA->castnormal, glm::vec3(0, 0, 1))) < 0.1) {
+				if (glm::abs(glm::dot(faceinfoA->castnormal, glm::vec4(0, 0, 1, 0))) < 0.1) {
 					highlight = true;
 					//std::cout << faceinfoA->castnormal.x << "," << faceinfoA->castnormal.y << "," << faceinfoA->castnormal.z << "\n";
 				}
@@ -213,7 +269,7 @@ void  toolkit::generateTrMeshNormals(toolkit::TrMesh &trmesh) {
 		// calculate the normal for each face:
 		glm::vec3 v0 = trmesh.verteces[face->a].pos - trmesh.verteces[face->c].pos;
 		glm::vec3 v1 = trmesh.verteces[face->b].pos - trmesh.verteces[face->c].pos;
-		faceinfo->normal = glm::normalize(glm::cross(v0, v1));
+		faceinfo->normal = glm::vec4(glm::normalize(glm::cross(v0, v1)),0);
 
 		// in order to avoid duplicates we always order the edge ids lower to higher
 		// generate unique lines as we traverse the faces:
@@ -309,12 +365,12 @@ void toolkit::pushTrMeshBuffers(TrMesh &mesh, GLint program) {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	std::cout << "pos_loc: " << (GLvoid*)offsetof(TrVert, pos) << "\n";
+	/*std::cout << "pos_loc: " << (GLvoid*)offsetof(TrVert, pos) << "\n";
 	std::cout << "normal_loc: " << (GLvoid*)offsetof(TrVert, normal) << "\n";
 	std::cout << "tex_coord_loc: " << (GLvoid*)offsetof(TrVert, texcoord) << "\n";
 	std::cout << "color_loc: " << (GLvoid*)offsetof(TrVert, color) << "\n";
 	std::cout << "verts: " << mesh.vertCount << "\n";
-	std::cout << "eles: " << mesh.elementCount << "\n";
+	std::cout << "eles: " << mesh.elementCount << "\n";*/
 }
 
 
