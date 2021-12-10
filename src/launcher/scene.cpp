@@ -466,7 +466,7 @@ void drawMesh(MeshStats &mesh) {
 
 	//if (settings.paintTrMesh) {
 
-	if (settings.paintSurfaces) {
+	if (true) {
 		glBindVertexArray(mesh.trMesh.vao);
 	//glDisable(GL_CULL_FACE);
 	//glDisable(GL_DEPTH_TEST);
@@ -713,7 +713,8 @@ void renderScene() {
 	fbohandler.unbind();
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	fbohandler.drawPass2(glm::vec2(width, height),ccol);
+	glm::vec4 flags = { settings.paintSurfaces, settings.paintLineart, settings.paintTrMesh,0 };
+	fbohandler.drawPass2(glm::vec2(width, height),ccol, flags);
 	draw_gui();
 
 	// Render ImGui

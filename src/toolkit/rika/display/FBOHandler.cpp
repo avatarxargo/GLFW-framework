@@ -141,7 +141,7 @@ void FBOHandler::clear() {
 	glClearTexImage(fbotex3, 0, GL_RGBA, GL_UNSIGNED_BYTE, &emptyData[0]);
 }
 
-void FBOHandler::drawPass2(glm::vec2 screensize, float* clearcol) {
+void FBOHandler::drawPass2(glm::vec2 screensize, float* clearcol, glm::vec4 &flags) {
 	bindProgram();
 	glBindVertexArray(vao);
 	bindProgram();
@@ -156,6 +156,7 @@ void FBOHandler::drawPass2(glm::vec2 screensize, float* clearcol) {
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, fbotex3);
 	glUniform4fv(5, 1, clearcol);
+	glUniform4fv(6, 1, &flags[0]);
 	//
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	//

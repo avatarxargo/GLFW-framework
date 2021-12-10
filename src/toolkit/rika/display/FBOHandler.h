@@ -28,6 +28,7 @@ namespace fboShaUni {
 	const int fbotex1 = 2;
 	const int fbotex2 = 3;
 	const int fbotex3 = 4;
+	const int drawflags = 6;
 }
 
 class FBOHandler : ShaderCore
@@ -45,14 +46,14 @@ private:
 	GLuint fbo; //fbo
 	GLuint fborb; //render buffer
 public:
-	GLuint fbotex1, fbotex2, fbotex3, fbodepthtex; //attachment0
+	GLuint fbotex1, fbotex2, fbotex3, fbodepthtex, drawflags; //attachment0
 	void setDimensions(int w, int h);
 	bool init();
 	bool createVAO();
 	void bind();
 	void unbind();
 	void clear();
-	void drawPass2(glm::vec2 screensize, float* clearcol);
+	void drawPass2(glm::vec2 screensize, float* clearcol, glm::vec4 &flags);
 	//
 	FBOHandler();
 	~FBOHandler();
